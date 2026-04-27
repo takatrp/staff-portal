@@ -10,42 +10,356 @@
 <style>
 :root{--brand:#578899;--brand-700:#456d77;--brand-300:#7aa5b4;--ink:#0f172a;--muted:#64748b;--bg:#f8fafc;--card:#fff;--line:#e2e8f0;--shadow:0 8px 24px rgba(15,23,42,.08);--shadow-btn:0 6px 18px rgba(15,23,42,.14);--shadow-btn-hover:0 10px 26px rgba(15,23,42,.18);--ring:rgba(87,136,153,.18)}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,"Noto Sans JP",Helvetica,Arial,"Apple Color Emoji","Segoe UI Emoji";line-height:1.55}
-a{color:inherit;text-decoration:none}button,input,select{font:inherit}.hero{background:linear-gradient(180deg,#fff 0%,#f3f7fb 100%);padding:16px;border-bottom:1px solid var(--line)}.topbar{display:flex;align-items:center;justify-content:space-between;gap:10px;max-width:1100px;margin:0 auto}.branding{display:flex;align-items:center;gap:10px;min-width:0}.logo{width:50px;height:50px;border-radius:10px;overflow:hidden;display:grid;place-items:center;flex:0 0 auto}.logo img{width:100%;height:100%;object-fit:contain}.title{font-size:clamp(17px,2vw,24px);font-weight:900;line-height:1.3}.subtitle{color:var(--muted);font-size:clamp(11px,1.8vw,14px);line-height:1.3}.btn{border:1px solid var(--line);background:#fff;color:var(--brand-700);border-radius:12px;padding:0 12px;height:36px;font-size:12px;font-weight:900;cursor:pointer;box-shadow:var(--shadow)}
-.search-wrap{max-width:1100px;margin:14px auto 0;padding:0 16px}.search-row{display:grid;grid-template-columns:1fr 154px 138px auto;gap:8px}.search-box{position:relative}.search-box svg{position:absolute;left:14px;top:50%;translate:0 -50%;width:20px;height:20px;stroke:var(--muted);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}.search-input,.filter-select{width:100%;border:1px solid var(--line);border-radius:999px;background:var(--card);color:var(--ink);box-shadow:var(--shadow-btn);outline:none;font-size:14px}.search-input{padding:11px 14px 11px 42px;box-sizing:border-box}.filter-select{height:43px;padding:0 13px}.search-input:focus,.filter-select:focus{border-color:var(--brand-300);box-shadow:0 0 0 4px var(--ring),var(--shadow-btn-hover)}
-.section{max-width:1100px;margin:12px auto;padding:0 16px}.section h2{display:flex;align-items:center;gap:8px;font-size:clamp(16px,2.2vw,24px);margin:12px 0 8px;font-weight:900;color:var(--brand-700)}.section-head{display:flex;align-items:center;justify-content:space-between}.count,.group-count{color:var(--muted);font-size:12px;font-weight:900}.linklist{display:grid;gap:10px}.tiles2,.tiles4{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.tile{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);cursor:pointer}.tile:hover{background:#fdfefe;border-color:#d7e2ea}.badge{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;background:linear-gradient(135deg,var(--brand) 0%,var(--brand-300) 100%);color:#fff;font-weight:900;flex:0 0 auto;font-size:13px}.badge svg{width:20px;height:20px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}.ttext{display:flex;flex-direction:column;gap:2px;min-width:0}.tile .title{font-size:15px;font-weight:900;line-height:1.28}.desc{font-size:12px;color:var(--muted);margin:0;line-height:1.35}.title-row{display:flex;align-items:center;gap:8px}.title-text{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.role-inline{display:inline-flex;align-items:center;justify-content:center;height:21px;padding:0 8px;border-radius:999px;border:1px solid rgba(87,136,153,.24);background:rgba(87,136,153,.08);color:var(--brand-700);font-size:11px;font-weight:900;white-space:nowrap}.tool-section{display:grid;gap:12px}.tool-group{display:grid;gap:8px}.group-title{display:flex;justify-content:space-between;margin:2px 0 0;color:var(--brand-700);font-size:15px;font-weight:900}.hidden{display:none!important}.empty{display:none;background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:16px;color:var(--muted);text-align:center;font-size:13px}.mk-mini{font-size:12px;color:var(--muted);text-align:center;padding:8px 12px;border-top:1px solid var(--line);margin-top:18px}
-@media(min-width:1024px){.hero{padding:24px 16px 16px}.section{margin:16px auto}.tile{gap:12px;padding:12px 14px}.badge{width:38px;height:38px}.tile .title{font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.desc{font-size:13px}}
-@media(max-width:767px){.topbar{align-items:flex-start}.logo{width:42px;height:42px}.search-row{grid-template-columns:1fr}.tiles2,.tiles4{grid-template-columns:1fr}.tile{padding:9px 10px}.badge{width:34px;height:34px}.tile .title{font-size:14px}.desc{font-size:12px}.role-inline{height:20px;font-size:10.5px;padding:0 7px}}
+a{color:inherit;text-decoration:none}
+button,input,select{font:inherit}
+
+.hero{background:linear-gradient(180deg,#fff 0%,#f3f7fb 100%);padding:16px;border-bottom:1px solid var(--line)}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:10px;max-width:1100px;margin:0 auto}
+.branding{display:flex;align-items:center;gap:10px;min-width:0}
+.logo{width:50px;height:50px;border-radius:10px;overflow:hidden;display:grid;place-items:center;flex:0 0 auto}
+.logo img{width:100%;height:100%;object-fit:contain}
+.title{font-size:clamp(17px,2vw,24px);font-weight:900;line-height:1.3}
+.subtitle{color:var(--muted);font-size:clamp(11px,1.8vw,14px);line-height:1.3}
+.btn{border:1px solid var(--line);background:#fff;color:var(--brand-700);border-radius:12px;padding:0 12px;height:36px;font-size:12px;font-weight:900;cursor:pointer;box-shadow:var(--shadow)}
+
+.search-wrap{max-width:1100px;margin:14px auto 0;padding:0 16px}
+.search-row{display:grid;grid-template-columns:1fr 154px 138px auto;gap:8px}
+.search-box{position:relative}
+.search-box svg{position:absolute;left:14px;top:50%;translate:0 -50%;width:20px;height:20px;stroke:var(--muted);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.search-input,.filter-select{width:100%;border:1px solid var(--line);border-radius:999px;background:var(--card);color:var(--ink);box-shadow:var(--shadow-btn);outline:none;font-size:14px}
+.search-input{padding:11px 14px 11px 42px;box-sizing:border-box}
+.filter-select{height:43px;padding:0 13px}
+.search-input:focus,.filter-select:focus{border-color:var(--brand-300);box-shadow:0 0 0 4px var(--ring),var(--shadow-btn-hover)}
+
+.section{max-width:1100px;margin:12px auto;padding:0 16px}
+.section h2{display:flex;align-items:center;gap:8px;font-size:clamp(16px,2.2vw,24px);margin:12px 0 8px;font-weight:900;color:var(--brand-700)}
+.section-head{display:flex;align-items:center;justify-content:space-between}
+.count,.group-count{color:var(--muted);font-size:12px;font-weight:900}
+
+.linklist{display:grid;gap:10px}
+.tiles2,.tiles4{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.tile{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);cursor:pointer}
+.tile:hover{background:#fdfefe;border-color:#d7e2ea}
+.badge{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;background:linear-gradient(135deg,var(--brand) 0%,var(--brand-300) 100%);color:#fff;font-weight:900;flex:0 0 auto;font-size:13px}
+.badge svg{width:20px;height:20px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.ttext{display:flex;flex-direction:column;gap:2px;min-width:0}
+.tile .title{font-size:15px;font-weight:900;line-height:1.28}
+.desc{font-size:12px;color:var(--muted);margin:0;line-height:1.35}
+.title-row{display:flex;align-items:center;gap:8px}
+.title-text{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.role-inline{display:inline-flex;align-items:center;justify-content:center;height:21px;padding:0 8px;border-radius:999px;border:1px solid rgba(87,136,153,.24);background:rgba(87,136,153,.08);color:var(--brand-700);font-size:11px;font-weight:900;white-space:nowrap}
+
+.tool-section{display:grid;gap:12px}
+.tool-group{display:grid;gap:8px}
+.group-title{display:flex;justify-content:space-between;margin:2px 0 0;color:var(--brand-700);font-size:15px;font-weight:900}
+.hidden{display:none!important}
+.empty{display:none;background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:16px;color:var(--muted);text-align:center;font-size:13px}
+.mk-mini{font-size:12px;color:var(--muted);text-align:center;padding:8px 12px;border-top:1px solid var(--line);margin-top:18px}
+
+@media(min-width:1024px){
+  .hero{padding:24px 16px 16px}
+  .section{margin:16px auto}
+  .tile{gap:12px;padding:12px 14px}
+  .badge{width:38px;height:38px}
+  .tile .title{font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .desc{font-size:13px}
+}
+
+@media(max-width:767px){
+  .topbar{align-items:flex-start}
+  .logo{width:42px;height:42px}
+  .search-row{grid-template-columns:1fr}
+  .tiles2,.tiles4{grid-template-columns:1fr}
+  .tile{padding:9px 10px}
+  .badge{width:34px;height:34px}
+  .tile .title{font-size:14px}
+  .desc{font-size:12px}
+  .role-inline{height:20px;font-size:10.5px;padding:0 7px}
+}
 </style>
 </head>
 <body>
-<header class="hero"><div class="topbar"><div class="branding"><a class="logo" href="https://takatrp.github.io/staff-portal/" target="_blank" rel="noopener"><img src="./for staff.png" alt="松本会計スタッフポータルロゴ"></a><div><div class="title">松本会計スタッフ専用ツールポータル</div><div class="subtitle">所内業務・面談準備・個別相談で使う補助ツールを一画面に集約。</div></div></div><button class="btn" onclick="window.print()">印刷 / PDF</button></div></header>
-<div class="search-wrap"><div class="search-row"><div class="search-box"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg><input id="tool-search" class="search-input" type="search" placeholder="ツール名・業務内容で検索"></div><select id="category-filter" class="filter-select"><option value="all">全分類</option><option value="advice">月次・経営助言</option><option value="asset">資産税・不動産</option><option value="tax">法人・役員</option><option value="payroll">給与・源泉</option><option value="funding">資金</option></select><select id="role-filter" class="filter-select"><option value="all">全区分</option><option value="staff">所内</option><option value="meeting">面談</option></select><button id="reset-filter" class="btn">リセット</button></div></div>
-<section class="section"><h2>主要導線</h2><div class="linklist tiles2">
-<a class="tile" href="https://takatrp.github.io/tool-portal/" target="_blank" rel="noopener"><div class="badge"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M7 8h10"></path><path d="M7 12h4"></path><path d="M13 12h4"></path><path d="M7 16h10"></path></svg></div><div class="ttext"><div class="title title-row"><span class="title-text">松本会計ツールポータル</span><span class="role-inline">共用</span></div><p class="desc">顧客と同じ画面を見ながら使う共用入口</p></div></a>
-<a class="tile" href="https://takatrp.github.io/overview-map/" target="_blank" rel="noopener"><div class="badge"><svg viewBox="0 0 24 24"><path d="M4 19.5V6.8c0-.6.4-1 1-1h5.8c.3 0 .5.1.7.3l1 1c.2.2.4.3.7.3H19c.6 0 1 .4 1 1v11.1c0 .6-.4 1-1 1H5c-.6 0-1-.4-1-1Z"></path><path d="M8 12h8"></path><path d="M8 16h5"></path></svg></div><div class="ttext"><div class="title title-row"><span class="title-text">ツールポータル完全攻略ガイド</span><span class="role-inline">所内</span></div><p class="desc">面談前の準備・対話設計の確認用</p></div></a>
-<a class="tile" href="https://takatrp.github.io/loan-sim/" target="_blank" rel="noopener"><div class="badge">融</div><div class="ttext"><div class="title title-row"><span class="title-text">ローンシミュレーター</span><span class="role-inline">面談</span></div><p class="desc">借入条件の試算と返済計画の確認</p></div></a>
-</div></section>
-<section class="section"><h2>資金</h2><div class="linklist tiles2">
-<a class="tile" href="https://takatrp.github.io/loan-sim/" target="_blank" rel="noopener"><div class="badge">融</div><div class="ttext"><div class="title title-row"><span class="title-text">ローンシミュレーター</span><span class="role-inline">面談</span></div><p class="desc">借入条件の試算と返済計画の確認</p></div></a>
-</div></section>
-<section class="section"><div class="section-head"><h2>ツール一覧</h2><span class="count"><span id="visible-count">6</span>件表示</span></div><div class="tool-section">
-<div class="tool-group"><div class="group-title"><span>月次・経営助言</span><span class="group-count">1件</span></div><div class="tiles4"><a class="tile tool-item" data-category="advice" data-role="staff" data-keywords="固変分解 変動損益計算書 変動費 固定費 限界利益 月次棚卸 月次減価償却 経過勘定 月次監査 巡回監査" href="https://takatrp.github.io/kohenbunkai/" target="_blank" rel="noopener"><div class="badge"><svg viewBox="0 0 24 24"><path d="M4 18h16"></path><path d="M7 15V9"></path><path d="M12 15V6"></path><path d="M17 15v-4"></path></svg></div><div class="ttext"><div class="title title-row"><span class="title-text">固変分解 見直し支援ツール</span><span class="role-inline">所内</span></div><p class="desc">変動PLの前提確認</p></div></a></div></div>
-<div class="tool-group"><div class="group-title"><span>資産税・不動産</span><span class="group-count">2件</span></div><div class="tiles4">
-<a class="tile tool-item" data-category="asset" data-role="meeting" data-keywords="収益不動産 不動産 取得資金 借入 ロードマップ 投資 物件 自己資金 資金計画" href="https://takatrp.github.io/Income-property-roadmap/" target="_blank" rel="noopener"><div class="badge">建</div><div class="ttext"><div class="title title-row"><span class="title-text">収益不動産 取得資金シミュレーター</span><span class="role-inline">面談</span></div><p class="desc">取得資金・借入の整理</p></div></a>
-<a class="tile tool-item" data-category="asset" data-role="meeting" data-keywords="贈与税 贈与 暦年 相続時精算課税 資産移転 税額試算 相続" href="https://takatrp.github.io/gift-tax/" target="_blank" rel="noopener"><div class="badge">贈</div><div class="ttext"><div class="title title-row"><span class="title-text">贈与税試算ツール</span><span class="role-inline">面談</span></div><p class="desc">贈与額と税額の概算確認</p></div></a>
-</div></div>
-<div class="tool-group"><div class="group-title"><span>法人・役員</span><span class="group-count">2件</span></div><div class="tiles4">
-<a class="tile tool-item" data-category="tax" data-role="meeting" data-keywords="退職金 役員退職金 功績倍率 退職所得控除 手取り 源泉 住民税" href="https://takatrp.github.io/taishoku/" target="_blank" rel="noopener"><div class="badge">退</div><div class="ttext"><div class="title title-row"><span class="title-text">退職金試算ツール</span><span class="role-inline">面談</span></div><p class="desc">役員退職金の概算確認</p></div></a>
-<a class="tile tool-item" data-category="tax" data-role="meeting" data-keywords="法人成り 個人事業 法人化 社会保険 消費税 役員報酬 国保 国民年金 インボイス" href="https://takatrp.github.io/houjinnari/" target="_blank" rel="noopener"><div class="badge">法</div><div class="ttext"><div class="title title-row"><span class="title-text">個人事業主の法人成り検討ツール</span><span class="role-inline">面談</span></div><p class="desc">税務・社保・消費税の比較</p></div></a>
-</div></div>
-<div class="tool-group"><div class="group-title"><span>給与・源泉</span><span class="group-count">1件</span></div><div class="tiles4"><a class="tile tool-item" data-category="payroll" data-role="staff" data-keywords="源泉税額 給与 月額表 令和8年 甲欄 乙欄 扶養 社保控除後 給与計算" href="https://takatrp.github.io/gensen/" target="_blank" rel="noopener"><div class="badge">源</div><div class="ttext"><div class="title title-row"><span class="title-text">令和8年分 給与源泉税額ツール</span><span class="role-inline">所内</span></div><p class="desc">月額給与の源泉税額確認</p></div></a></div></div>
-<div class="tool-group"><div class="group-title"><span>資金</span><span class="group-count">1件</span></div><div class="tiles4"><a class="tile tool-item" data-category="funding" data-role="meeting" data-keywords="借入 借入金 返済シミュレーター 返済計画 金利 資金繰り" href="https://takatrp.github.io/loan-sim/" target="_blank" rel="noopener"><div class="badge">融</div><div class="ttext"><div class="title title-row"><span class="title-text">借入金返済シミュレーター</span><span class="role-inline">面談</span></div><p class="desc">借入条件の試算と返済計画の確認</p></div></a></div></div>
-<div id="empty" class="empty">該当するツールがありません。</div></div></section>
-<section class="section"><h2>資金</h2><div class="linklist tiles2">
-<a class="tile" href="https://takatrp.github.io/loan-sim/" target="_blank" rel="noopener"><div class="badge">融</div><div class="ttext"><div class="title title-row"><span class="title-text">借入金返済シミュレーター</span><span class="role-inline">面談</span></div><p class="desc">借入条件の試算と返済計画の確認</p></div></a>
-</div></section>
+
+<header class="hero">
+  <div class="topbar">
+    <div class="branding">
+      <a class="logo" href="https://takatrp.github.io/staff-portal/" target="_blank" rel="noopener">
+        <img src="./for staff.png" alt="松本会計スタッフポータルロゴ">
+      </a>
+      <div>
+        <div class="title">松本会計スタッフ専用ツールポータル</div>
+        <div class="subtitle">所内業務・面談準備・個別相談で使う補助ツールを一画面に集約。</div>
+      </div>
+    </div>
+    <button class="btn" onclick="window.print()">印刷 / PDF</button>
+  </div>
+</header>
+
+<div class="search-wrap">
+  <div class="search-row">
+    <div class="search-box">
+      <svg viewBox="0 0 24 24">
+        <circle cx="11" cy="11" r="8"></circle>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+      </svg>
+      <input id="tool-search" class="search-input" type="search" placeholder="ツール名・業務内容で検索">
+    </div>
+
+    <select id="category-filter" class="filter-select">
+      <option value="all">全分類</option>
+      <option value="advice">月次・経営助言</option>
+      <option value="asset">資産税・不動産</option>
+      <option value="tax">法人・役員</option>
+      <option value="payroll">給与・源泉</option>
+      <option value="funding">資金</option>
+    </select>
+
+    <select id="role-filter" class="filter-select">
+      <option value="all">全区分</option>
+      <option value="staff">所内</option>
+      <option value="meeting">面談</option>
+    </select>
+
+    <button id="reset-filter" class="btn">リセット</button>
+  </div>
+</div>
+
+<section class="section">
+  <h2>主要導線</h2>
+  <div class="linklist tiles2">
+    <a class="tile" href="https://takatrp.github.io/tool-portal/" target="_blank" rel="noopener">
+      <div class="badge">
+        <svg viewBox="0 0 24 24">
+          <rect x="3" y="4" width="18" height="16" rx="2"></rect>
+          <path d="M7 8h10"></path>
+          <path d="M7 12h4"></path>
+          <path d="M13 12h4"></path>
+          <path d="M7 16h10"></path>
+        </svg>
+      </div>
+      <div class="ttext">
+        <div class="title title-row">
+          <span class="title-text">松本会計ツールポータル</span>
+          <span class="role-inline">共用</span>
+        </div>
+        <p class="desc">顧客と同じ画面を見ながら使う共用入口</p>
+      </div>
+    </a>
+
+    <a class="tile" href="https://takatrp.github.io/overview-map/" target="_blank" rel="noopener">
+      <div class="badge">
+        <svg viewBox="0 0 24 24">
+          <path d="M4 19.5V6.8c0-.6.4-1 1-1h5.8c.3 0 .5.1.7.3l1 1c.2.2.4.3.7.3H19c.6 0 1 .4 1 1v11.1c0 .6-.4 1-1 1H5c-.6 0-1-.4-1-1Z"></path>
+          <path d="M8 12h8"></path>
+          <path d="M8 16h5"></path>
+        </svg>
+      </div>
+      <div class="ttext">
+        <div class="title title-row">
+          <span class="title-text">ツールポータル完全攻略ガイド</span>
+          <span class="role-inline">所内</span>
+        </div>
+        <p class="desc">面談前の準備・対話設計の確認用</p>
+      </div>
+    </a>
+  </div>
+</section>
+
+<section class="section">
+  <div class="section-head">
+    <h2>ツール一覧</h2>
+    <span class="count"><span id="visible-count">7</span>件表示</span>
+  </div>
+
+  <div class="tool-section">
+    <div class="tool-group">
+      <div class="group-title">
+        <span>月次・経営助言</span>
+        <span class="group-count">1件</span>
+      </div>
+      <div class="tiles4">
+        <a class="tile tool-item" data-category="advice" data-role="staff" data-keywords="固変分解 変動損益計算書 変動費 固定費 限界利益 月次棚卸 月次減価償却 経過勘定 月次監査 巡回監査" href="https://takatrp.github.io/kohenbunkai/" target="_blank" rel="noopener">
+          <div class="badge">
+            <svg viewBox="0 0 24 24">
+              <path d="M4 18h16"></path>
+              <path d="M7 15V9"></path>
+              <path d="M12 15V6"></path>
+              <path d="M17 15v-4"></path>
+            </svg>
+          </div>
+          <div class="ttext">
+            <div class="title title-row">
+              <span class="title-text">固変分解 見直し支援ツール</span>
+              <span class="role-inline">所内</span>
+            </div>
+            <p class="desc">変動PLの前提確認</p>
+          </div>
+        </a>
+      </div>
+    </div>
+
+    <div class="tool-group">
+      <div class="group-title">
+        <span>資産税・不動産</span>
+        <span class="group-count">2件</span>
+      </div>
+      <div class="tiles4">
+        <a class="tile tool-item" data-category="asset" data-role="meeting" data-keywords="収益不動産 不動産 取得資金 借入 ロードマップ 投資 物件 自己資金 資金計画" href="https://takatrp.github.io/Income-property-roadmap/" target="_blank" rel="noopener">
+          <div class="badge">建</div>
+          <div class="ttext">
+            <div class="title title-row">
+              <span class="title-text">収益不動産 取得資金シミュレーター</span>
+              <span class="role-inline">面談</span>
+            </div>
+            <p class="desc">取得資金・借入の整理</p>
+          </div>
+        </a>
+
+        <a class="tile tool-item" data-category="asset" data-role="meeting" data-keywords="贈与税 贈与 暦年 相続時精算課税 資産移転 税額試算 相続" href="https://takatrp.github.io/gift-tax/" target="_blank" rel="noopener">
+          <div class="badge">贈</div>
+          <div class="ttext">
+            <div class="title title-row">
+              <span class="title-text">贈与税試算ツール</span>
+              <span class="role-inline">面談</span>
+            </div>
+            <p class="desc">贈与額と税額の概算確認</p>
+          </div>
+        </a>
+      </div>
+    </div>
+
+    <div class="tool-group">
+      <div class="group-title">
+        <span>法人・役員</span>
+        <span class="group-count">2件</span>
+      </div>
+      <div class="tiles4">
+        <a class="tile tool-item" data-category="tax" data-role="meeting" data-keywords="退職金 役員退職金 功績倍率 退職所得控除 手取り 源泉 住民税" href="https://takatrp.github.io/taishoku/" target="_blank" rel="noopener">
+          <div class="badge">退</div>
+          <div class="ttext">
+            <div class="title title-row">
+              <span class="title-text">退職金試算ツール</span>
+              <span class="role-inline">面談</span>
+            </div>
+            <p class="desc">役員退職金の概算確認</p>
+          </div>
+        </a>
+
+        <a class="tile tool-item" data-category="tax" data-role="meeting" data-keywords="法人成り 個人事業 法人化 社会保険 消費税 役員報酬 国保 国民年金 インボイス" href="https://takatrp.github.io/houjinnari/" target="_blank" rel="noopener">
+          <div class="badge">法</div>
+          <div class="ttext">
+            <div class="title title-row">
+              <span class="title-text">個人事業主の法人成り検討ツール</span>
+              <span class="role-inline">面談</span>
+            </div>
+            <p class="desc">税務・社保・消費税の比較</p>
+          </div>
+        </a>
+      </div>
+    </div>
+
+    <div class="tool-group">
+      <div class="group-title">
+        <span>給与・源泉</span>
+        <span class="group-count">1件</span>
+      </div>
+      <div class="tiles4">
+        <a class="tile tool-item" data-category="payroll" data-role="staff" data-keywords="源泉税額 給与 月額表 令和8年 甲欄 乙欄 扶養 社保控除後 給与計算" href="https://takatrp.github.io/gensen/" target="_blank" rel="noopener">
+          <div class="badge">源</div>
+          <div class="ttext">
+            <div class="title title-row">
+              <span class="title-text">令和8年分 給与源泉税額ツール</span>
+              <span class="role-inline">所内</span>
+            </div>
+            <p class="desc">月額給与の源泉税額確認</p>
+          </div>
+        </a>
+      </div>
+    </div>
+
+    <div class="tool-group">
+      <div class="group-title">
+        <span>資金</span>
+        <span class="group-count">1件</span>
+      </div>
+      <div class="tiles4">
+        <a class="tile tool-item" data-category="funding" data-role="meeting" data-keywords="借入 借入金 返済シミュレーター 返済計画 金利 資金繰り" href="https://takatrp.github.io/loan-sim/" target="_blank" rel="noopener">
+          <div class="badge">融</div>
+          <div class="ttext">
+            <div class="title title-row">
+              <span class="title-text">借入金返済シミュレーター</span>
+              <span class="role-inline">面談</span>
+            </div>
+            <p class="desc">借入条件の試算と返済計画の確認</p>
+          </div>
+        </a>
+      </div>
+    </div>
+
+    <div id="empty" class="empty">該当するツールがありません。</div>
+  </div>
+</section>
+
 <footer class="mk-mini">© <span id="cpy-year">2026</span> 税理士法人松本会計事務所 ｜ Staff Portal</footer>
+
 <script>
-(function(){const y=document.getElementById('cpy-year');if(y)y.textContent=new Date().getFullYear();const s=document.getElementById('tool-search'),c=document.getElementById('category-filter'),r=document.getElementById('role-filter'),reset=document.getElementById('reset-filter'),vc=document.getElementById('visible-count'),empty=document.getElementById('empty'),items=[...document.querySelectorAll('.tool-item')],groups=[...document.querySelectorAll('.tool-group')];function n(x){return(x||'').toString().toLowerCase().replace(/\s+/g,'')}function update(){const q=n(s.value),cat=c.value,role=r.value;let total=0;items.forEach(i=>{const text=n(i.innerText+' '+(i.dataset.keywords||'')),show=(!q||text.includes(q))&&(cat==='all'||i.dataset.category===cat)&&(role==='all'||i.dataset.role===role);i.classList.toggle('hidden',!show);if(show)total++});groups.forEach(g=>{const cnt=g.querySelectorAll('.tool-item:not(.hidden)').length;g.classList.toggle('hidden',cnt===0);const ce=g.querySelector('.group-count');if(ce)ce.textContent=cnt+'件'});vc.textContent=total;empty.style.display=total?'none':'block'}[s,c,r].forEach(e=>{e.addEventListener('input',update);e.addEventListener('change',update)});reset.addEventListener('click',()=>{s.value='';c.value='all';r.value='all';update();s.focus()});update()})();
+(function(){
+  const y=document.getElementById('cpy-year');
+  if(y)y.textContent=new Date().getFullYear();
+
+  const s=document.getElementById('tool-search');
+  const c=document.getElementById('category-filter');
+  const r=document.getElementById('role-filter');
+  const reset=document.getElementById('reset-filter');
+  const vc=document.getElementById('visible-count');
+  const empty=document.getElementById('empty');
+  const items=[...document.querySelectorAll('.tool-item')];
+  const groups=[...document.querySelectorAll('.tool-group')];
+
+  function n(x){
+    return(x||'').toString().toLowerCase().replace(/\s+/g,'');
+  }
+
+  function update(){
+    const q=n(s.value);
+    const cat=c.value;
+    const role=r.value;
+    let total=0;
+
+    items.forEach(i=>{
+      const text=n(i.innerText+' '+(i.dataset.keywords||''));
+      const show=(!q||text.includes(q))&&(cat==='all'||i.dataset.category===cat)&&(role==='all'||i.dataset.role===role);
+      i.classList.toggle('hidden',!show);
+      if(show)total++;
+    });
+
+    groups.forEach(g=>{
+      const cnt=g.querySelectorAll('.tool-item:not(.hidden)').length;
+      g.classList.toggle('hidden',cnt===0);
+      const ce=g.querySelector('.group-count');
+      if(ce)ce.textContent=cnt+'件';
+    });
+
+    vc.textContent=total;
+    empty.style.display=total?'none':'block';
+  }
+
+  [s,c,r].forEach(e=>{
+    e.addEventListener('input',update);
+    e.addEventListener('change',update);
+  });
+
+  reset.addEventListener('click',()=>{
+    s.value='';
+    c.value='all';
+    r.value='all';
+    update();
+    s.focus();
+  });
+
+  update();
+})();
 </script>
-</body></html>m
+
+</body>
+</html>
