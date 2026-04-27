@@ -4,6 +4,9 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
 <title>松本会計スタッフ専用ツールポータル</title>
+<link rel="icon" type="image/png" href="./for staff.png" />
+<link rel="shortcut icon" href="./for staff.png" />
+<link rel="apple-touch-icon" href="./for staff.png" />
 <style>
 :root{--brand:#578899;--brand-700:#456d77;--brand-300:#7aa5b4;--ink:#0f172a;--muted:#64748b;--bg:#f8fafc;--card:#fff;--line:#e2e8f0;--shadow:0 8px 24px rgba(15,23,42,.08);--shadow-btn:0 6px 18px rgba(15,23,42,.14);--shadow-btn-hover:0 10px 26px rgba(15,23,42,.18);--ring:rgba(87,136,153,.18)}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,"Noto Sans JP",Helvetica,Arial,"Apple Color Emoji","Segoe UI Emoji";line-height:1.55}
@@ -15,11 +18,12 @@ a{color:inherit;text-decoration:none}button,input,select{font:inherit}.hero{back
 </style>
 </head>
 <body>
-<header class="hero"><div class="topbar"><div class="branding"><a class="logo" href="https://www.matsumoto-kaikei.or.jp/" target="_blank" rel="noopener"><img src="./ロゴ.jpg" onerror="this.onerror=null;this.src='./ロゴ.png'" alt="松本会計ロゴ"></a><div><div class="title">松本会計スタッフ専用ツールポータル</div><div class="subtitle">所内業務・面談準備・個別相談で使う補助ツールを一画面に集約。</div></div></div><button class="btn" onclick="window.print()">印刷 / PDF</button></div></header>
+<header class="hero"><div class="topbar"><div class="branding"><a class="logo" href="https://takatrp.github.io/staff-portal/" target="_blank" rel="noopener"><img src="./for staff.png" alt="松本会計スタッフポータルロゴ"></a><div><div class="title">松本会計スタッフ専用ツールポータル</div><div class="subtitle">所内業務・面談準備・個別相談で使う補助ツールを一画面に集約。</div></div></div><button class="btn" onclick="window.print()">印刷 / PDF</button></div></header>
 <div class="search-wrap"><div class="search-row"><div class="search-box"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg><input id="tool-search" class="search-input" type="search" placeholder="ツール名・業務内容で検索"></div><select id="category-filter" class="filter-select"><option value="all">全分類</option><option value="advice">月次・経営助言</option><option value="asset">資産税・不動産</option><option value="tax">法人・役員</option><option value="payroll">給与・源泉</option></select><select id="role-filter" class="filter-select"><option value="all">全区分</option><option value="staff">所内</option><option value="meeting">面談</option></select><button id="reset-filter" class="btn">リセット</button></div></div>
 <section class="section"><h2>主要導線</h2><div class="linklist tiles2">
 <a class="tile" href="https://takatrp.github.io/tool-portal/" target="_blank" rel="noopener"><div class="badge"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M7 8h10"></path><path d="M7 12h4"></path><path d="M13 12h4"></path><path d="M7 16h10"></path></svg></div><div class="ttext"><div class="title title-row"><span class="title-text">松本会計ツールポータル</span><span class="role-inline">共用</span></div><p class="desc">顧客と同じ画面を見ながら使う共用入口</p></div></a>
 <a class="tile" href="https://takatrp.github.io/overview-map/" target="_blank" rel="noopener"><div class="badge"><svg viewBox="0 0 24 24"><path d="M4 19.5V6.8c0-.6.4-1 1-1h5.8c.3 0 .5.1.7.3l1 1c.2.2.4.3.7.3H19c.6 0 1 .4 1 1v11.1c0 .6-.4 1-1 1H5c-.6 0-1-.4-1-1Z"></path><path d="M8 12h8"></path><path d="M8 16h5"></path></svg></div><div class="ttext"><div class="title title-row"><span class="title-text">ツールポータル完全攻略ガイド</span><span class="role-inline">所内</span></div><p class="desc">面談前の準備・対話設計の確認用</p></div></a>
+<a class="tile" href="https://takatrp.github.io/loan-sim/" target="_blank" rel="noopener"><div class="badge">融</div><div class="ttext"><div class="title title-row"><span class="title-text">ローンシミュレーター</span><span class="role-inline">面談</span></div><p class="desc">借入条件の試算と返済計画の確認</p></div></a>
 </div></section>
 <section class="section"><div class="section-head"><h2>ツール一覧</h2><span class="count"><span id="visible-count">6</span>件表示</span></div><div class="tool-section">
 <div class="tool-group"><div class="group-title"><span>月次・経営助言</span><span class="group-count">1件</span></div><div class="tiles4"><a class="tile tool-item" data-category="advice" data-role="staff" data-keywords="固変分解 変動損益計算書 変動費 固定費 限界利益 月次棚卸 月次減価償却 経過勘定 月次監査 巡回監査" href="https://takatrp.github.io/kohenbunkai/" target="_blank" rel="noopener"><div class="badge"><svg viewBox="0 0 24 24"><path d="M4 18h16"></path><path d="M7 15V9"></path><path d="M12 15V6"></path><path d="M17 15v-4"></path></svg></div><div class="ttext"><div class="title title-row"><span class="title-text">固変分解 見直し支援ツール</span><span class="role-inline">所内</span></div><p class="desc">変動PLの前提確認</p></div></a></div></div>
