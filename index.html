@@ -63,7 +63,22 @@ button,input,select{font:inherit}
 .group-title{display:flex;justify-content:space-between;margin:2px 0 0;color:var(--brand-700);font-size:15px;font-weight:900}
 .hidden{display:none!important}
 .empty{display:none;background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:16px;color:var(--muted);text-align:center;font-size:13px}
-.mk-mini{font-size:12px;color:var(--muted);text-align:center;padding:8px 12px;border-top:1px solid var(--line);margin-top:18px}
+
+.mk-mini{
+  font-size:12px;
+  color:var(--muted);
+  text-align:center;
+  padding:9px 12px;
+  border-top:1px solid var(--line);
+  margin-top:18px;
+  white-space:nowrap;
+  overflow-x:auto;
+  -webkit-overflow-scrolling:touch;
+}
+
+.footer-updated{
+  color:#94a3b8;
+}
 
 @media(min-width:1024px){
   .hero{padding:24px 16px 16px}
@@ -94,6 +109,7 @@ button,input,select{font:inherit}
   .desc{font-size:12px}
   .role-inline,.idea-inline{height:20px;font-size:10.5px;padding:0 7px}
   .title-text{min-width:100%;flex-basis:100%}
+  .mk-mini{font-size:11px;text-align:left}
 }
 
 @media(max-width:420px){
@@ -346,12 +362,27 @@ button,input,select{font:inherit}
   </div>
 </section>
 
-<footer class="mk-mini">© <span id="cpy-year">2026</span> 税理士法人松本会計事務所 ｜ Staff Portal</footer>
+<footer class="mk-mini">
+  © <span id="cpy-year">2026</span> 税理士法人松本会計事務所 ｜ Staff Portal ｜ <span class="footer-updated">最終更新日：<span id="last-updated">取得中...</span></span>
+</footer>
 
 <script>
 (function(){
   const y=document.getElementById('cpy-year');
   if(y)y.textContent=new Date().getFullYear();
+
+  const lastUpdated=document.getElementById('last-updated');
+  if(lastUpdated){
+    const d=new Date(document.lastModified);
+    if(Number.isNaN(d.getTime())){
+      lastUpdated.textContent='不明';
+    }else{
+      const yyyy=d.getFullYear();
+      const mm=String(d.getMonth()+1).padStart(2,'0');
+      const dd=String(d.getDate()).padStart(2,'0');
+      lastUpdated.textContent=`${yyyy}/${mm}/${dd}`;
+    }
+  }
 
   const s=document.getElementById('tool-search');
   const c=document.getElementById('category-filter');
