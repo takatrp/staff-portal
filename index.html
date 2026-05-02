@@ -9,18 +9,25 @@
 <link rel="apple-touch-icon" href="./for staff.png" />
 <style>
 :root{--brand:#578899;--brand-700:#456d77;--brand-300:#7aa5b4;--ink:#0f172a;--muted:#64748b;--bg:#f8fafc;--card:#fff;--line:#e2e8f0;--shadow:0 8px 24px rgba(15,23,42,.08);--shadow-btn:0 6px 18px rgba(15,23,42,.14);--shadow-btn-hover:0 10px 26px rgba(15,23,42,.18);--ring:rgba(87,136,153,.18)}
+*{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,"Noto Sans JP",Helvetica,Arial,"Apple Color Emoji","Segoe UI Emoji";line-height:1.55}
 a{color:inherit;text-decoration:none}
 button,input,select{font:inherit}
 
 .hero{background:linear-gradient(180deg,#fff 0%,#f3f7fb 100%);padding:16px;border-bottom:1px solid var(--line)}
-.topbar{display:flex;align-items:center;justify-content:space-between;gap:10px;max-width:1100px;margin:0 auto}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:14px;max-width:1100px;margin:0 auto}
 .branding{display:flex;align-items:center;gap:10px;min-width:0}
 .logo{width:50px;height:50px;border-radius:10px;overflow:hidden;display:grid;place-items:center;flex:0 0 auto}
 .logo img{width:100%;height:100%;object-fit:contain}
 .title{font-size:clamp(17px,2vw,24px);font-weight:900;line-height:1.3}
-.subtitle{color:var(--muted);font-size:clamp(11px,1.8vw,14px);line-height:1.3}
+.subtitle{color:var(--muted);font-size:clamp(11px,1.8vw,14px);line-height:1.35}
 .btn{border:1px solid var(--line);background:#fff;color:var(--brand-700);border-radius:12px;padding:0 12px;height:36px;font-size:12px;font-weight:900;cursor:pointer;box-shadow:var(--shadow)}
+
+.hero-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex:0 0 auto}
+.hero-link-btn{display:inline-flex;align-items:center;justify-content:center;min-height:38px;min-width:0;padding:0 14px;border-radius:12px;border:1px solid rgba(87,136,153,.28);background:#fff;color:var(--brand-700);font-size:12px;font-weight:900;box-shadow:var(--shadow);white-space:nowrap;line-height:1.25;text-align:center;transition:translate .15s ease,box-shadow .15s ease,border-color .15s ease,background .15s ease}
+.hero-link-btn.primary{background:var(--brand);color:#fff;border-color:var(--brand)}
+.hero-link-btn:hover{box-shadow:var(--shadow-btn-hover);translate:0 -1px}
+.hero-link-btn:focus-visible,.btn:focus-visible{outline:3px solid var(--ring);outline-offset:2px}
 
 .search-wrap{max-width:1100px;margin:14px auto 0;padding:0 16px}
 .search-row{display:grid;grid-template-columns:1fr 154px 138px auto;gap:8px}
@@ -38,16 +45,18 @@ button,input,select{font:inherit}
 
 .linklist{display:grid;gap:10px}
 .tiles2,.tiles4{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-.tile{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);cursor:pointer}
+.tile{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);cursor:pointer;min-width:0}
 .tile:hover{background:#fdfefe;border-color:#d7e2ea}
 .badge{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;background:linear-gradient(135deg,var(--brand) 0%,var(--brand-300) 100%);color:#fff;font-weight:900;flex:0 0 auto;font-size:13px}
 .badge svg{width:20px;height:20px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.ttext{display:flex;flex-direction:column;gap:2px;min-width:0}
-.tile .title{font-size:15px;font-weight:900;line-height:1.28}
+.ttext{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1 1 auto}
+.tile .title{font-size:15px;font-weight:900;line-height:1.28;min-width:0}
 .desc{font-size:12px;color:var(--muted);margin:0;line-height:1.35}
-.title-row{display:flex;align-items:center;gap:8px}
-.title-text{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.role-inline{display:inline-flex;align-items:center;justify-content:center;height:21px;padding:0 8px;border-radius:999px;border:1px solid rgba(87,136,153,.24);background:rgba(87,136,153,.08);color:var(--brand-700);font-size:11px;font-weight:900;white-space:nowrap}
+.title-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap;min-width:0}
+.title-text{min-width:120px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1 1 auto}
+.role-inline,.idea-inline{display:inline-flex;align-items:center;justify-content:center;height:21px;padding:0 8px;border-radius:999px;font-size:11px;font-weight:900;white-space:nowrap;flex:0 0 auto}
+.role-inline{border:1px solid rgba(87,136,153,.24);background:rgba(87,136,153,.08);color:var(--brand-700)}
+.idea-inline{border:1px solid rgba(180,83,9,.22);background:#fff7ed;color:#9a3412}
 
 .tool-section{display:grid;gap:12px}
 .tool-group{display:grid;gap:8px}
@@ -61,20 +70,36 @@ button,input,select{font:inherit}
   .section{margin:16px auto}
   .tile{gap:12px;padding:12px 14px}
   .badge{width:38px;height:38px}
-  .tile .title{font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tile .title{font-size:16px}
   .desc{font-size:13px}
 }
 
+@media(max-width:900px){
+  .topbar{flex-direction:column;align-items:stretch}
+  .branding{align-items:center}
+  .hero-actions{width:100%;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .hero-link-btn{width:100%;white-space:normal;padding:9px 10px}
+}
+
 @media(max-width:767px){
-  .topbar{align-items:flex-start}
+  .hero{padding:14px 12px}
   .logo{width:42px;height:42px}
+  .search-wrap{padding:0 12px}
   .search-row{grid-template-columns:1fr}
+  .section{padding:0 12px}
   .tiles2,.tiles4{grid-template-columns:1fr}
-  .tile{padding:9px 10px}
+  .tile{padding:10px}
   .badge{width:34px;height:34px}
   .tile .title{font-size:14px}
   .desc{font-size:12px}
-  .role-inline{height:20px;font-size:10.5px;padding:0 7px}
+  .role-inline,.idea-inline{height:20px;font-size:10.5px;padding:0 7px}
+  .title-text{min-width:100%;flex-basis:100%}
+}
+
+@media(max-width:420px){
+  .branding{align-items:flex-start}
+  .hero-actions{grid-template-columns:1fr}
+  .hero-link-btn{min-height:40px}
 }
 </style>
 </head>
@@ -91,7 +116,26 @@ button,input,select{font:inherit}
         <div class="subtitle">所内業務・面談準備・個別相談で使う補助ツールを一画面に集約。</div>
       </div>
     </div>
-    <button class="btn" onclick="window.print()">印刷 / PDF</button>
+
+    <div class="hero-actions">
+      <a
+        class="hero-link-btn primary"
+        href="https://docs.google.com/forms/d/e/1FAIpQLSeVNYP7fezqdvjJSGcVEFbB2pVbRGNVrCQO1NuXOKcxWC2Gkg/viewform?usp=header"
+        target="_blank"
+        rel="noopener"
+      >
+        活用事例を共有する
+      </a>
+
+      <a
+        class="hero-link-btn"
+        href="https://script.google.com/macros/s/AKfycbyQICBvdVugUBNaYbDvJs3lX2_kek0F3HF7-L3MuY8/dev"
+        target="_blank"
+        rel="noopener"
+      >
+        活用事例を見る
+      </a>
+    </div>
   </div>
 </header>
 
@@ -178,7 +222,7 @@ button,input,select{font:inherit}
         <span class="group-count">1件</span>
       </div>
       <div class="tiles4">
-        <a class="tile tool-item" data-category="advice" data-role="staff" data-keywords="固変分解 変動損益計算書 変動費 固定費 限界利益 月次棚卸 月次減価償却 経過勘定 月次監査 巡回監査" href="https://takatrp.github.io/kohenbunkai/" target="_blank" rel="noopener">
+        <a class="tile tool-item" data-category="advice" data-role="staff" data-keywords="固変分解 変動損益計算書 変動費 固定費 限界利益 月次棚卸 月次減価償却 経過勘定 月次監査 巡回監査 門脇 発案" href="https://takatrp.github.io/kohenbunkai/" target="_blank" rel="noopener">
           <div class="badge">
             <svg viewBox="0 0 24 24">
               <path d="M4 18h16"></path>
@@ -191,6 +235,7 @@ button,input,select{font:inherit}
             <div class="title title-row">
               <span class="title-text">固変分解 見直し支援ツール</span>
               <span class="role-inline">所内</span>
+              <span class="idea-inline">門脇さん発案</span>
             </div>
             <p class="desc">変動PLの前提確認</p>
           </div>
@@ -283,12 +328,13 @@ button,input,select{font:inherit}
         <span class="group-count">1件</span>
       </div>
       <div class="tiles4">
-        <a class="tile tool-item" data-category="funding" data-role="meeting" data-keywords="借入 借入金 返済シミュレーター 返済計画 金利 資金繰り" href="https://takatrp.github.io/loan-sim/" target="_blank" rel="noopener">
+        <a class="tile tool-item" data-category="funding" data-role="meeting" data-keywords="借入 借入金 返済シミュレーター 返済計画 金利 資金繰り 清﨑 発案" href="https://takatrp.github.io/loan-sim/" target="_blank" rel="noopener">
           <div class="badge">融</div>
           <div class="ttext">
             <div class="title title-row">
               <span class="title-text">借入金返済シミュレーター</span>
               <span class="role-inline">面談</span>
+              <span class="idea-inline">清﨑さん発案</span>
             </div>
             <p class="desc">借入条件の試算と返済計画の確認</p>
           </div>
