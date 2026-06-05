@@ -304,6 +304,18 @@ select{
   stroke-linejoin:round;
 }
 
+.badge.tool-icon{
+  background:#fff;
+  overflow:hidden;
+}
+
+.badge.tool-icon img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  display:block;
+}
+
 .ttext{
   display:flex;
   flex-direction:column;
@@ -614,6 +626,7 @@ select{
       <option value="tax">法人・役員</option>
       <option value="payroll">給与・源泉</option>
       <option value="funding">資金</option>
+      <option value="other">その他</option>
     </select>
 
     <select id="role-filter" class="filter-select">
@@ -670,7 +683,7 @@ select{
 <section class="section">
   <div class="section-head">
     <h2>ツール一覧</h2>
-    <span class="count"><span id="visible-count">7</span>件表示</span>
+    <span class="count"><span id="visible-count">8</span>件表示</span>
   </div>
 
   <div class="tool-section">
@@ -795,6 +808,27 @@ select{
               <span class="idea-inline">清﨑さん発案</span>
             </div>
             <p class="desc">借入条件の試算と返済計画の確認</p>
+          </div>
+        </a>
+      </div>
+    </div>
+
+    <div class="tool-group">
+      <div class="group-title">
+        <span>その他</span>
+        <span class="group-count">1件</span>
+      </div>
+      <div class="tiles4">
+        <a class="tile tool-item" data-category="other" data-role="staff" data-keywords="スマホで経費 TKC 経費 レシート 撮影 登録 仕訳 FXクラウド 体験 シミュレーター" href="https://takatrp.github.io/smartphone-keihi-simulator/" target="_blank" rel="noopener">
+          <div class="badge tool-icon">
+            <img src="./smartphone-keihi-icon.jpg" alt="" loading="lazy">
+          </div>
+          <div class="ttext">
+            <div class="title title-row">
+              <span class="title-text">スマホで経費 体験シミュレーター</span>
+              <span class="role-inline">所内</span>
+            </div>
+            <p class="desc">レシート撮影から仕訳計上までの流れを確認</p>
           </div>
         </a>
       </div>
