@@ -316,6 +316,10 @@ select{
   display:block;
 }
 
+.badge.tool-icon.logo-icon img{
+  object-fit:contain;
+}
+
 .ttext{
   display:flex;
   flex-direction:column;
@@ -844,7 +848,9 @@ select{
         </a>
 
         <a class="tile tool-item" data-category="other" data-role="staff" data-keywords="小規模企業共済 共済金 試算 シミュレーション 節税 掛金 中小機構 外部サイト" href="https://kyosai-web.smrj.go.jp/skyosai1/simulator/" target="_blank" rel="noopener">
-          <div class="badge">共</div>
+          <div class="badge tool-icon logo-icon">
+            <img src="./kyosai-simulator-icon.png" alt="" loading="lazy">
+          </div>
           <div class="ttext">
             <div class="title title-row">
               <span class="title-text">小規模企業共済 共済金試算シミュレーション（外部サイト）</span>
