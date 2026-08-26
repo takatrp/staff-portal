@@ -94,8 +94,10 @@ export type ByproductRow = {
   valuationUnit: number | null;
   openingAmount: number | null;
   purchaseAmount: number | null;
+  internalIssueAmount: number | null;
   closingQty: number | null;
   closingUnit: number | null;
+  includeInFinancialTotals: boolean;
 };
 
 export type FoodProductRow = {
@@ -149,7 +151,7 @@ export type FinalizationSnapshot = {
 };
 
 export type SakeCostModel = {
-  schemaVersion: 2;
+  schemaVersion: 3;
   meta: {
     companyName: string;
     periodLabel: string;

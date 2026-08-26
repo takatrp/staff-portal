@@ -16,7 +16,7 @@ export function SpecialScreen({ model, calc, locked, updateModel, recordAudit, o
     inputLabel: "品目名",
     confirmLabel: "追加する",
     onConfirm: (label) => updateModel((draft) => {
-      draft.byproducts.push({ id: `custom-byproduct-${Date.now()}`, label: label || "追加副産物", standard: false, creditCategory: "sake", producedQty: 0, valuationUnit: 0, openingAmount: 0, purchaseAmount: 0, closingQty: 0, closingUnit: 0 });
+      draft.byproducts.push({ id: `custom-byproduct-${Date.now()}`, label: label || "追加副産物", standard: false, creditCategory: "sake", producedQty: 0, valuationUnit: 0, openingAmount: 0, purchaseAmount: 0, internalIssueAmount: 0, closingQty: 0, closingUnit: 0, includeInFinancialTotals: true });
     }, "副産物を追加", label, "新規行"),
   });
   const addFood = () => openDialog({
@@ -56,12 +56,12 @@ export function SpecialScreen({ model, calc, locked, updateModel, recordAudit, o
 
       {tab === "byproducts" && (
         <section className="panel">
-          <PanelTitle title="副産物" description="発生評価額を控除先酒種の製造原価から差し引きます。購入金額は副産物売上原価に加算します。" action={<button type="button" className="secondary-button" onClick={addByproduct} disabled={locked}>＋ 行を追加</button>} />
-          <div className="table-scroll"><table className="data-table input-table wide-table"><thead><tr><th>品目名</th><th>控除先酒種</th><th>発生数量</th><th>評価単価</th><th>発生評価額</th><th>期首金額</th><th>購入金額</th><th>期末数量</th><th>期末単価</th><th>売上原価</th><th>操作</th></tr></thead><tbody>
+          <PanelTitle title="副産物" description="発生評価額は製造原価から控除します。内部払出は品目原価から控除し、財務集計対象外の品目は副産物売上原価・期末棚卸の合計に含めません。" action={<button type="button" className="secondary-button" onClick={addByproduct} disabled={locked}>＋ 行を追加</button>} />
+          <div className="table-scroll"><table className="data-table input-table wide-table"><thead><tr><th>品目名</th><th>控除先酒種</th><th>発生数量</th><th>評価単価</th><th>発生評価額</th><th>期首金額</th><th>購入金額</th><th>内部払出</th><th>期末数量</th><th>期末単価</th><th>財務集計</th><th>品目原価</th><th>操作</th></tr></thead><tbody>
             {model.byproducts.map((row, index) => {
               const produced = roundMoney(numeric(row.producedQty) * numeric(row.valuationUnit));
               const ending = roundMoney(numeric(row.closingQty) * numeric(row.closingUnit));
-              const cogs = roundMoney(numeric(row.openingAmount) + produced + numeric(row.purchaseAmount) - ending);
+              const cogs = roundMoney(numeric(row.openingAmount) + produced + numeric(row.purchaseAmount) - numeric(row.internalIssueAmount) - ending);
               return <tr key={row.id} id={`row-${row.id}`}>
                 <th><TextCommitInput value={row.label} onChange={(value) => updateModel((draft) => { draft.byproducts[index].label = value; })} onCommit={(before, after) => recordAudit(`${row.id} 品目名`, before, after, "副産物名を変更")} disabled={locked} ariaLabel={`${row.label} 品目名`} /></th>
                 <td><select value={row.creditCategory} onChange={(event) => updateModel((draft) => { draft.byproducts[index].creditCategory = event.target.value as ByproductRow["creditCategory"]; }, "副産物控除先を変更", row.label, `${model.categories[row.creditCategory].label} → ${model.categories[event.target.value as ByproductRow["creditCategory"]].label}`)} disabled={locked}>{ALCOHOL_CATEGORY_IDS.map((id) => <option key={id} value={id}>{model.categories[id].label}</option>)}</select></td>
@@ -70,12 +70,14 @@ export function SpecialScreen({ model, calc, locked, updateModel, recordAudit, o
                 <td><Money value={produced} /></td>
                 <td><NumberInput value={row.openingAmount} onChange={(value) => updateModel((draft) => { draft.byproducts[index].openingAmount = value; })} onCommit={commit(`${row.label} 期首金額`)} disabled={locked} kind="money" ariaLabel={`${row.label} 期首金額`} /></td>
                 <td><NumberInput value={row.purchaseAmount} onChange={(value) => updateModel((draft) => { draft.byproducts[index].purchaseAmount = value; })} onCommit={commit(`${row.label} 購入金額`)} disabled={locked} kind="money" ariaLabel={`${row.label} 購入金額`} /></td>
+                <td><NumberInput value={row.internalIssueAmount} onChange={(value) => updateModel((draft) => { draft.byproducts[index].internalIssueAmount = value; })} onCommit={commit(`${row.label} 内部払出`)} disabled={locked} kind="money" ariaLabel={`${row.label} 内部払出`} /></td>
                 <td><NumberInput value={row.closingQty} onChange={(value) => updateModel((draft) => { draft.byproducts[index].closingQty = value; })} onCommit={commit(`${row.label} 期末数量`)} disabled={locked} kind="quantity" ariaLabel={`${row.label} 期末数量`} /></td>
                 <td><NumberInput value={row.closingUnit} onChange={(value) => updateModel((draft) => { draft.byproducts[index].closingUnit = value; })} onCommit={commit(`${row.label} 期末単価`)} disabled={locked} kind="money" ariaLabel={`${row.label} 期末単価`} /></td>
-                <td><Money value={cogs} /></td><td><button className="icon-danger" type="button" onClick={() => deleteByproduct(row)} disabled={locked}>削除</button></td>
+                <td><input type="checkbox" checked={row.includeInFinancialTotals} onChange={(event) => updateModel((draft) => { draft.byproducts[index].includeInFinancialTotals = event.target.checked; }, "副産物の財務集計区分を変更", row.label, event.target.checked ? "集計対象" : "集計対象外")} disabled={locked} aria-label={`${row.label} 財務集計対象`} /></td>
+                <td><Money value={cogs} />{!row.includeInFinancialTotals && <small>（参考）</small>}</td><td><button className="icon-danger" type="button" onClick={() => deleteByproduct(row)} disabled={locked}>削除</button></td>
               </tr>;
             })}
-          </tbody><tfoot><tr><th colSpan={4}>合計</th><td><Money value={Object.values(calc.byproducts.credits).reduce((a, b) => a + b, 0)} /></td><td colSpan={4} /><td><Money value={calc.byproducts.cogsTotal} /></td><td /></tr></tfoot></table></div>
+          </tbody><tfoot><tr><th colSpan={4}>合計</th><td><Money value={Object.values(calc.byproducts.credits).reduce((a, b) => a + b, 0)} /></td><td colSpan={6} /><td /><td><Money value={calc.byproducts.cogsTotal} /></td><td /></tr></tfoot></table></div>
         </section>
       )}
 

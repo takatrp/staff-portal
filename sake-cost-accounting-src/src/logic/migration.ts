@@ -54,12 +54,12 @@ function validateCore(model: SakeCostModel): void {
 }
 
 export function migrateModel(value: unknown, now = new Date().toISOString()): SakeCostModel {
-  if (!isRecord(value) || (value.schemaVersion !== 1 && value.schemaVersion !== 2)) throw new Error("対応していないJSONスキーマです。");
+  if (!isRecord(value) || (value.schemaVersion !== 1 && value.schemaVersion !== 2 && value.schemaVersion !== 3)) throw new Error("対応していないJSONスキーマです。");
   const defaults = createNormalDemoModel(now);
 
-  if (value.schemaVersion === 2) {
+  if (value.schemaVersion === 3) {
     const merged = mergeSafe(defaults, value) as SakeCostModel;
-    merged.schemaVersion = 2;
+    merged.schemaVersion = 3;
     merged.auditLog = normalizeAuditLog(merged.auditLog, merged.meta.operatorName);
     merged.finalizationSnapshots = Array.isArray(merged.finalizationSnapshots) ? merged.finalizationSnapshots.slice(0, 10) : [];
     validateCore(merged);
@@ -67,7 +67,7 @@ export function migrateModel(value: unknown, now = new Date().toISOString()): Sa
   }
 
   const migrated = mergeSafe(defaults, value) as SakeCostModel;
-  migrated.schemaVersion = 2;
+  migrated.schemaVersion = 3;
   migrated.meta = {
     ...defaults.meta,
     ...(isRecord(value.meta) ? value.meta : {}),
@@ -112,6 +112,8 @@ export function migrateModel(value: unknown, now = new Date().toISOString()): Sa
     id: typeof row.id === "string" && row.id ? row.id : createId(`byproduct-${index}`),
     label: typeof row.label === "string" && row.label ? row.label : `副産物${index + 1}`,
     standard: defaults.byproducts.some((candidate) => candidate.id === row.id),
+    internalIssueAmount: typeof row.internalIssueAmount === "number" ? row.internalIssueAmount : 0,
+    includeInFinancialTotals: typeof row.includeInFinancialTotals === "boolean" ? row.includeInFinancialTotals : true,
   }));
   migrated.food.products = migrated.food.products.map((row, index) => ({
     ...row,
@@ -127,8 +129,8 @@ export function migrateModel(value: unknown, now = new Date().toISOString()): Sa
       at: now,
       actor: "未設定",
       target: "データ全体",
-      action: "schemaVersion 1から2へ移行",
-      detail: "既存入力を保持し、新規統制項目へ安全な初期値を設定",
+      action: `schemaVersion ${value.schemaVersion}から3へ移行`,
+      detail: "既存入力を保持し、新規統制項目と副産物内部払出項目へ安全な初期値を設定",
     },
     ...normalizeAuditLog(value.auditLog, ""),
   ].slice(0, 200);

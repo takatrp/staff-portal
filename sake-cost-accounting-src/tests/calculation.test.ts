@@ -56,8 +56,59 @@ describe("原価・数量・棚卸・売上原価", () => {
     const result = calculateModel(model);
     const produced = 100 * 500 + 20 * 400;
     expect(result.byproducts.credits.sake).toBe(produced);
+    expect(result.byproducts.endingInventory).toBe(12_000);
+    expect(result.byproducts.cogsTotal).toBe(61_000);
+  });
+
+  it("副産物の内部払出を控除し、財務集計対象外品目は棚卸・売上原価合計から外す", () => {
+    const model = createNormalDemoModel();
+    const riceKoji = model.byproducts.find((row) => row.id === "rice-koji")!;
+    riceKoji.internalIssueAmount = 3_000;
+    let result = calculateModel(model);
+    expect(result.byproducts.cogsTotal).toBe(61_000);
+    expect(result.byproducts.endingInventory).toBe(12_000);
+
+    riceKoji.includeInFinancialTotals = true;
+    result = calculateModel(model);
+    expect(result.byproducts.cogsTotal).toBe(64_000);
     expect(result.byproducts.endingInventory).toBe(14_000);
-    expect(result.byproducts.cogsTotal).toBe(67_000);
+  });
+
+  it("評価損金額を期末金額とは独立して詰口製品売上原価から控除する", () => {
+    const model = createNormalDemoModel();
+    model.productRollforwards.sake.finished.valuationLossAmount = 12_345;
+    const withoutLoss = createNormalDemoModel();
+    withoutLoss.productRollforwards.sake.finished.valuationLossAmount = 0;
+    expect(calculateModel(withoutLoss).productCosts.sake.finished.cogsAmount - calculateModel(model).productCosts.sake.finished.cogsAmount).toBe(12_345);
+  });
+
+  it("原酒から詰口酒・詰口製品へ金額を順番に繰り越す", () => {
+    const model = createNormalDemoModel();
+    for (const group of [model.materials.manufacturing, model.materials.packaging]) {
+      for (const row of group) for (const id of CATEGORY_IDS) row.entries[id] = { opening: 0, occurred: 0, closing: 0, transfer: 0 };
+    }
+    for (const pool of Object.values(model.pools)) {
+      for (const row of pool) {
+        row.total = 0;
+        for (const id of CATEGORY_IDS) {
+          row.direct[id] = 0;
+          row.manual[id] = 0;
+          row.customWeights[id] = 0;
+        }
+      }
+    }
+    model.byproducts = [];
+    for (const id of CATEGORY_IDS) model.miscIncome.packaging[id] = 0;
+    model.productRollforwards.sake.raw = { openingQty: 0, openingAmount: 1_000, purchaseQty: 0, purchaseAmount: 2_000, closingQty: 0, closingAmount: 300, transferQty: 0, transferAmount: 100, lossQty: 0, lossAmount: 50 };
+    model.productRollforwards.sake.middle.openingAmount = 400;
+    model.productRollforwards.sake.middle.closingAmount = 250;
+    model.productRollforwards.sake.finished.openingAmount = 500;
+    model.productRollforwards.sake.finished.closingAmount = 350;
+    model.productRollforwards.sake.finished.valuationLossAmount = 75;
+    const result = calculateModel(model).productCosts.sake;
+    expect(result.raw.outputAmount).toBe(2_550);
+    expect(result.middle.outputAmount).toBe(2_700);
+    expect(result.finished.cogsAmount).toBe(2_775);
   });
 
   it("食品未配賦差額と商品売上原価を独立して検算する", () => {

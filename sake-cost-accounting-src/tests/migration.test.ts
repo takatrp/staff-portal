@@ -17,13 +17,27 @@ describe("JSON移行と確定入力ハッシュ", () => {
     legacy.meta.operatorName = "旧担当者";
     legacy.finalizationSnapshots = [{ unsafe: true }];
     const migrated = migrateModel(legacy, "2026-08-26T00:00:00.000Z");
-    expect(migrated.schemaVersion).toBe(2);
+    expect(migrated.schemaVersion).toBe(3);
     expect(migrated.categories.sake.label).toBe("清酒（移行値）");
     expect(migrated.categories.sake.allocationEligible).toBe(false);
     expect(migrated.categories.sake.deprecatedAlcoholBasis).toBe(18);
     expect(migrated.meta.operatorName).toBe("");
     expect(migrated.finalizationSnapshots).toEqual([]);
-    expect(migrated.auditLog[0].action).toContain("schemaVersion 1から2へ移行");
+    expect(migrated.byproducts[0].internalIssueAmount).toBe(0);
+    expect(migrated.byproducts[0].includeInFinancialTotals).toBe(true);
+    expect(migrated.auditLog[0].action).toContain("schemaVersion 1から3へ移行");
+  });
+
+  it("schemaVersion 2の副産物を内部払出0円・財務集計対象として移行する", () => {
+    const legacy = JSON.parse(JSON.stringify(createNormalDemoModel())) as Record<string, unknown> & { schemaVersion: number; byproducts: Array<Record<string, unknown>> };
+    legacy.schemaVersion = 2;
+    delete legacy.byproducts[0].internalIssueAmount;
+    delete legacy.byproducts[0].includeInFinancialTotals;
+    const migrated = migrateModel(legacy, "2026-08-26T00:00:00.000Z");
+    expect(migrated.schemaVersion).toBe(3);
+    expect(migrated.byproducts[0].internalIssueAmount).toBe(0);
+    expect(migrated.byproducts[0].includeInFinancialTotals).toBe(true);
+    expect(migrated.auditLog[0].action).toContain("schemaVersion 2から3へ移行");
   });
 
   it("不正JSONと未対応スキーマを拒否する", () => {

@@ -133,11 +133,13 @@ export function calculateModel(model: SakeCostModel): CalculationResult {
   for (const row of model.byproducts) {
     const produced = roundMoney(numeric(row.producedQty) * numeric(row.valuationUnit));
     const ending = roundMoney(numeric(row.closingQty) * numeric(row.closingUnit));
-    const cogs = roundMoney(numeric(row.openingAmount) + produced + numeric(row.purchaseAmount) - ending);
+    const cogs = roundMoney(numeric(row.openingAmount) + produced + numeric(row.purchaseAmount) - numeric(row.internalIssueAmount) - ending);
     byproductCredits[row.creditCategory] = roundMoney(byproductCredits[row.creditCategory] + produced);
-    byproductEnding = roundMoney(byproductEnding + ending);
-    byproductCogs = roundMoney(byproductCogs + cogs);
-    if (cogs < 0) checks.push(check(`byproduct:${row.id}:negative-cogs`, "error", "副産物", "special", `${row.label}の売上原価がマイナスです`, "期首・発生・購入・期末を見直してください。", { rowId: row.id }));
+    if (row.includeInFinancialTotals) {
+      byproductEnding = roundMoney(byproductEnding + ending);
+      byproductCogs = roundMoney(byproductCogs + cogs);
+      if (cogs < 0) checks.push(check(`byproduct:${row.id}:negative-cogs`, "error", "副産物", "special", `${row.label}の売上原価がマイナスです`, "期首・発生・購入・内部払出・期末を見直してください。", { rowId: row.id }));
+    }
   }
 
   const manufacturingCost = moneyMap();

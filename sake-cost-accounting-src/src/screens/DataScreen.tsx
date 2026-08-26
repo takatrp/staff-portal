@@ -82,8 +82,8 @@ export function DataScreen({ model, calc, updateModel, openDialog, showToast }: 
       <section className="panel">
         <PanelTitle eyebrow="BACKUP & EXPORT" title="バックアップ・出力" description="入力はこのブラウザに自動保存されます。端末故障やブラウザ初期化に備えてJSONも保存してください。" />
         <div className="export-grid">
-          <article><h3>JSONバックアップ</h3><p>全入力・設定・確認記録・確定スナップショットを保存します。</p><button className="primary-button" type="button" onClick={() => { downloadText(`${safeFileName(model.meta.periodLabel)}-backup-v2.json`, JSON.stringify(model, null, 2), "application/json;charset=utf-8"); showToast("JSONバックアップを保存しました。", "success"); }}>JSONを保存</button></article>
-          <article><h3>JSONから復元</h3><p>v1はv2へ自動移行します。不正JSONでは現在データを変更しません。</p><input ref={jsonInput} type="file" accept=".json,application/json" onChange={restoreJson} hidden /><button className="secondary-button" type="button" onClick={() => jsonInput.current?.click()}>JSONを選択</button></article>
+          <article><h3>JSONバックアップ</h3><p>全入力・設定・確認記録・確定スナップショットを保存します。</p><button className="primary-button" type="button" onClick={() => { downloadText(`${safeFileName(model.meta.periodLabel)}-backup-v3.json`, JSON.stringify(model, null, 2), "application/json;charset=utf-8"); showToast("JSONバックアップを保存しました。", "success"); }}>JSONを保存</button></article>
+          <article><h3>JSONから復元</h3><p>v1/v2はv3へ自動移行します。不正JSONでは現在データを変更しません。</p><input ref={jsonInput} type="file" accept=".json,application/json" onChange={restoreJson} hidden /><button className="secondary-button" type="button" onClick={() => jsonInput.current?.click()}>JSONを選択</button></article>
           <article><h3>集計CSV</h3><p>酒種別原価、棚卸内訳・小計・合計、確定情報を出力します。</p><button className="secondary-button" type="button" onClick={() => { downloadText(`${safeFileName(model.meta.periodLabel)}-summary.csv`, buildSummaryCsv(model, calc), "text/csv;charset=utf-8"); showToast("集計CSVを保存しました。", "success"); }}>集計CSVを保存</button></article>
         </div>
         <div className="scope-warning"><strong>現在は1端末・1利用者向けの実証版です</strong><p>複数人同時利用、認証・権限、データベース、サーバーバックアップ、改ざん防止は未実装です。</p></div>

@@ -41,7 +41,7 @@ test("架空のCSVプレビューとJSON・集計CSVの出力が機能する", a
   const jsonDownload = page.waitForEvent("download");
   await page.getByRole("button", { name: "JSONを保存" }).click();
   const downloadedJson = await jsonDownload;
-  expect(downloadedJson.suggestedFilename()).toMatch(/backup-v2\.json$/);
+  expect(downloadedJson.suggestedFilename()).toMatch(/backup-v3\.json$/);
   const downloadedPath = await downloadedJson.path();
   expect(downloadedPath).not.toBeNull();
 
