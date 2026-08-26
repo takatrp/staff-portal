@@ -45,6 +45,32 @@ describe("JSON移行と確定入力ハッシュ", () => {
     expect(() => migrateModel({ schemaVersion: 99 })).toThrow("対応していないJSONスキーマ");
   });
 
+  it("計算で参照する配列内の壊れた行を復元前に拒否する", () => {
+    const brokenMaterials = JSON.parse(JSON.stringify(createNormalDemoModel())) as Record<string, unknown> & { schemaVersion: number; materials: { manufacturing: unknown[] } };
+    brokenMaterials.schemaVersion = 2;
+    brokenMaterials.materials.manufacturing = [null];
+    expect(() => migrateModel(brokenMaterials)).toThrow("manufacturing材料費");
+
+    const missingMaterials = JSON.parse(JSON.stringify(createNormalDemoModel())) as Record<string, unknown> & { schemaVersion: number };
+    missingMaterials.schemaVersion = 2;
+    missingMaterials.materials = null;
+    expect(() => migrateModel(missingMaterials)).toThrow("主要データ");
+
+    const brokenPool = JSON.parse(JSON.stringify(createNormalDemoModel())) as Record<string, unknown> & { pools: { manufacturingLabor: Array<Record<string, unknown>> } };
+    brokenPool.pools.manufacturingLabor[0].direct = { sake: 100 };
+    expect(() => migrateModel(brokenPool)).toThrow("配賦行入力");
+  });
+
+  it("重複行IDと壊れた確定証跡を拒否する", () => {
+    const duplicate = createNormalDemoModel();
+    duplicate.pools.manufacturingLabor[1].id = duplicate.pools.manufacturingLabor[0].id;
+    expect(() => migrateModel(duplicate)).toThrow("配賦行");
+
+    const brokenSnapshot = createNormalDemoModel() as unknown as Record<string, unknown> & { finalizationSnapshots: unknown[] };
+    brokenSnapshot.finalizationSnapshots = [{ id: "final-1", finalizedAt: "2026-08-26T00:00:00.000Z", finalizedBy: {}, inputHash: {}, inputData: null, summary: { manufacturingCostTotal: 0, packagingCostTotal: 0, endingInventoryTotal: 0, costOfSalesTotal: 0 } }];
+    expect(() => migrateModel(brokenSnapshot)).toThrow("確定スナップショット");
+  });
+
   it("スナップショットから履歴を除外し、同じ入力は同じハッシュになる", () => {
     const model = createNormalDemoModel();
     const first = sanitizeForSnapshot(model);

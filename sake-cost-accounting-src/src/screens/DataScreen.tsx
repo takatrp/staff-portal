@@ -23,7 +23,7 @@ function downloadText(fileName: string, content: string, mime: string) {
   URL.revokeObjectURL(url);
 }
 
-export function DataScreen({ model, calc, updateModel, openDialog, showToast }: CommonScreenProps) {
+export function DataScreen({ model, calc, locked, updateModel, openDialog, showToast }: CommonScreenProps) {
   const [csvPreview, setCsvPreview] = useState<CsvPreview | null>(null);
   const csvInput = useRef<HTMLInputElement>(null);
   const jsonInput = useRef<HTMLInputElement>(null);
@@ -46,6 +46,10 @@ export function DataScreen({ model, calc, updateModel, openDialog, showToast }: 
     const file = event.target.files?.[0];
     event.target.value = "";
     if (!file) return;
+    if (locked) {
+      showToast("確定済みデータは復元できません。先に確定を解除してください。", "error");
+      return;
+    }
     let restored: SakeCostModel;
     try {
       restored = parseAndMigrateJson(await file.text());
@@ -61,13 +65,19 @@ export function DataScreen({ model, calc, updateModel, openDialog, showToast }: 
     });
   };
 
-  const loadDemo = (kind: "normal" | "error") => openDialog({
-    title: kind === "normal" ? "正常デモデータを読み込みますか？" : "エラー確認用データを読み込みますか？",
-    detail: "現在の入力内容は失われます。必要な場合は先にJSONバックアップを保存してください。",
-    confirmLabel: "読み込む",
-    danger: kind === "error",
-    onConfirm: () => updateModel((draft) => { Object.assign(draft, kind === "normal" ? createNormalDemoModel() : createErrorDemoModel()); }, kind === "normal" ? "正常デモデータを読込" : "エラー確認用データを読込", "全体", "公開用の架空データ"),
-  });
+  const loadDemo = (kind: "normal" | "error") => {
+    if (locked) {
+      showToast("確定済みデータは上書きできません。先に確定を解除してください。", "error");
+      return;
+    }
+    openDialog({
+      title: kind === "normal" ? "正常デモデータを読み込みますか？" : "エラー確認用データを読み込みますか？",
+      detail: "現在の入力内容は失われます。必要な場合は先にJSONバックアップを保存してください。",
+      confirmLabel: "読み込む",
+      danger: kind === "error",
+      onConfirm: () => updateModel((draft) => { Object.assign(draft, kind === "normal" ? createNormalDemoModel() : createErrorDemoModel()); }, kind === "normal" ? "正常デモデータを読込" : "エラー確認用データを読込", "全体", "公開用の架空データ"),
+    });
+  };
 
   return (
     <div className="screen-stack">
@@ -83,7 +93,7 @@ export function DataScreen({ model, calc, updateModel, openDialog, showToast }: 
         <PanelTitle eyebrow="BACKUP & EXPORT" title="バックアップ・出力" description="入力はこのブラウザに自動保存されます。端末故障やブラウザ初期化に備えてJSONも保存してください。" />
         <div className="export-grid">
           <article><h3>JSONバックアップ</h3><p>全入力・設定・確認記録・確定スナップショットを保存します。</p><button className="primary-button" type="button" onClick={() => { downloadText(`${safeFileName(model.meta.periodLabel)}-backup-v3.json`, JSON.stringify(model, null, 2), "application/json;charset=utf-8"); showToast("JSONバックアップを保存しました。", "success"); }}>JSONを保存</button></article>
-          <article><h3>JSONから復元</h3><p>v1/v2はv3へ自動移行します。不正JSONでは現在データを変更しません。</p><input ref={jsonInput} type="file" accept=".json,application/json" onChange={restoreJson} hidden /><button className="secondary-button" type="button" onClick={() => jsonInput.current?.click()}>JSONを選択</button></article>
+          <article><h3>JSONから復元</h3><p>v1/v2はv3へ自動移行します。確定済みの場合は先に確定解除が必要です。</p><input ref={jsonInput} type="file" accept=".json,application/json" onChange={restoreJson} disabled={locked} hidden /><button className="secondary-button" type="button" onClick={() => jsonInput.current?.click()} disabled={locked}>JSONを選択</button></article>
           <article><h3>集計CSV</h3><p>酒種別原価、棚卸内訳・小計・合計、確定情報を出力します。</p><button className="secondary-button" type="button" onClick={() => { downloadText(`${safeFileName(model.meta.periodLabel)}-summary.csv`, buildSummaryCsv(model, calc), "text/csv;charset=utf-8"); showToast("集計CSVを保存しました。", "success"); }}>集計CSVを保存</button></article>
         </div>
         <div className="scope-warning"><strong>現在は1端末・1利用者向けの実証版です</strong><p>複数人同時利用、認証・権限、データベース、サーバーバックアップ、改ざん防止は未実装です。</p></div>
@@ -91,7 +101,7 @@ export function DataScreen({ model, calc, updateModel, openDialog, showToast }: 
 
       <section className="panel">
         <PanelTitle title="デモデータ" description="どちらも架空データです。通常の基準値に戻す操作は正常デモデータを読み込みます。" />
-        <div className="button-row"><button type="button" className="secondary-button" onClick={() => loadDemo("normal")}>正常デモデータを読み込む</button><button type="button" className="secondary-button" onClick={() => loadDemo("error")}>エラー確認用データを読み込む</button><button type="button" className="danger-button" onClick={() => loadDemo("normal")}>基準値に戻す</button></div>
+        <div className="button-row"><button type="button" className="secondary-button" onClick={() => loadDemo("normal")} disabled={locked}>正常デモデータを読み込む</button><button type="button" className="secondary-button" onClick={() => loadDemo("error")} disabled={locked}>エラー確認用データを読み込む</button><button type="button" className="danger-button" onClick={() => loadDemo("normal")} disabled={locked}>基準値に戻す</button></div>
       </section>
 
       <section className="panel">

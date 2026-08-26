@@ -74,7 +74,7 @@ export function InventoryScreen({ model, calc, locked, updateModel, recordAudit,
       draft.meta.finalizedAt = null;
       draft.meta.finalizedBy = null;
       draft.meta.finalizationId = null;
-    }, "確定を解除", model.meta.periodLabel, "確定スナップショットは保持"),
+    }, "確定を解除", model.meta.periodLabel, "確定スナップショットは保持", { allowWhenLocked: true }),
   });
 
   return (

@@ -72,8 +72,12 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: "auto" });
   }, []);
 
-  const updateModel = useCallback((mutator: (draft: SakeCostModel) => void, action?: string, target = "全体", detail = "") => {
+  const updateModel = useCallback((mutator: (draft: SakeCostModel) => void, action?: string, target = "全体", detail = "", options: { allowWhenLocked?: boolean } = {}) => {
     setModel((current) => {
+      if (current.meta.status === "finalized" && !options.allowWhenLocked) {
+        window.setTimeout(() => setToast({ message: "確定済みデータは変更できません。先に確定を解除してください。", kind: "error" }), 0);
+        return current;
+      }
       const draft = structuredClone(current);
       mutator(draft);
       const at = new Date().toISOString();
@@ -96,6 +100,7 @@ export default function App() {
   const recordAudit = useCallback((target: string, before: unknown, after: unknown, action = "入力値を確定") => {
     if (displayValue(before) === displayValue(after)) return;
     setModel((current) => {
+      if (current.meta.status === "finalized") return current;
       const draft = structuredClone(current);
       const at = new Date().toISOString();
       draft.meta.updatedAt = at;

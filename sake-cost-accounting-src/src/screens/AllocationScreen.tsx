@@ -87,7 +87,7 @@ export function AllocationScreen({ type, ...props }: CommonScreenProps & { type:
               <PanelTitle title={groupLabels[poolId]} description="行を選ぶと、配賦方法・直課額・比率を右側で編集できます。" action={<button type="button" className="secondary-button" onClick={() => addRow(poolId)} disabled={locked}>＋ 行を追加</button>} />
               <div className="table-scroll">
                 <table className="data-table allocation-table">
-                  <thead><tr><th>費目</th><th>総額</th><th>配賦方法</th>{CATEGORY_IDS.map((id) => <th key={id}>{model.categories[id].short || model.categories[id].label}</th>)}<th>操作</th></tr></thead>
+                  <thead><tr><th>費目</th><th>総額</th><th>配賦方法</th>{CATEGORY_IDS.map((id) => <th key={id}>{model.categories[id].label}</th>)}<th>操作</th></tr></thead>
                   <tbody>
                     {model.pools[poolId].map((row, rowIndex) => {
                       const rowResult = calc.pools[poolId].rows[row.id];
