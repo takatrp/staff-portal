@@ -11,7 +11,7 @@ const workflow: Array<{ id: ScreenId; step: number; title: string; detail: strin
   { id: "inventory", step: 6, title: "棚卸・売上原価", detail: "最終確認して年度を確定" },
 ];
 
-export function HomeScreen({ model, calc, navigate }: CommonScreenProps) {
+export function HomeScreen({ model, calc, navigate, persistenceMode }: CommonScreenProps) {
   const reviewed = model.review.items.filter((item) => item.done && item.note.trim()).length;
   const workflowStatus = (screenId: ScreenId) => {
     if (model.meta.status === "finalized") return "完了";
@@ -63,8 +63,8 @@ export function HomeScreen({ model, calc, navigate }: CommonScreenProps) {
           <button className="text-button" type="button" onClick={() => navigate("inventory")}>検算内容を見る →</button>
         </section>
         <section className="autosave-card">
-          <h3>▣ この端末に自動保存</h3>
-          <p>入力内容はブラウザに保存されます。作業終了時は「保存・出力」からJSONバックアップを保存してください。</p>
+          <h3>{persistenceMode === "persistent" ? "▣ この端末に自動保存" : "⚠ このセッションは自動保存されません"}</h3>
+          <p>{persistenceMode === "persistent" ? "入力内容はブラウザに保存されます。作業終了時は「保存・出力」からJSONバックアップを保存してください。" : "ブラウザの保存領域を利用できません。作業終了前に「保存・出力」からJSONバックアップを保存してください。"}</p>
         </section>
       </div>
     </div>
