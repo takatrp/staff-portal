@@ -19,6 +19,31 @@ describe("主要画面スモーク", () => {
     expect(screen.getByRole("button", { name: "✓ エラー 0" })).toBeInTheDocument();
   });
 
+  it("ホームに現在の画面順どおり6工程を表示する", () => {
+    render(<App />);
+    const workflow = screen.getByRole("heading", { name: "年度原価計算の進め方" }).closest("section")!;
+    const buttons = within(workflow).getAllByRole("button");
+    expect(buttons).toHaveLength(6);
+    ["原材料費", "製造費用按分", "製品費用按分", "製品原価", "甘酒・副産物・食品", "棚卸・売上原価"].forEach((title, index) => {
+      expect(buttons[index]).toHaveTextContent(String(index + 1));
+      expect(buttons[index]).toHaveTextContent(title);
+    });
+  });
+
+  it("副産物表の合計行を13列にそろえ、品目原価と操作列を分離する", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(within(screen.getByRole("navigation", { name: "メインメニュー" })).getByRole("button", { name: "甘酒・副産物等" }));
+    await user.click(screen.getByRole("button", { name: "副産物", exact: true }));
+    const table = screen.getByRole("table", { name: "副産物原価" });
+    expect(table.querySelectorAll("thead th")).toHaveLength(13);
+    const footer = within(table).getByRole("row", { name: /合計/ });
+    const logicalColumns = [...footer.children].reduce((total, cell) => total + Number(cell.getAttribute("colspan") ?? 1), 0);
+    expect(logicalColumns).toBe(13);
+    expect(within(footer).getByRole("cell", { name: "品目原価合計" })).toHaveTextContent("¥61,000");
+    expect(within(footer).getByRole("cell", { name: "操作列" })).toBeEmptyDOMElement();
+  });
+
   it("確定済みデータではJSON復元とデモ上書きを無効にする", async () => {
     const finalized = createNormalDemoModel();
     finalized.meta.status = "finalized";

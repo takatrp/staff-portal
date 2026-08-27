@@ -75,7 +75,7 @@ export function SpecialScreen({ model, calc, locked, updateModel, recordAudit, o
       {tab === "byproducts" && (
         <section className="panel">
           <PanelTitle title="副産物" description="発生評価額は製造原価から控除します。内部払出は品目原価から控除し、財務集計対象外の品目は副産物売上原価・期末棚卸の合計に含めません。" action={<button type="button" className="secondary-button" onClick={addByproduct} disabled={locked}>＋ 行を追加</button>} />
-          <div className="table-scroll"><table className="data-table input-table wide-table"><thead><tr><th>品目名</th><th>控除先酒種</th><th>発生数量</th><th>評価単価</th><th>発生評価額</th><th>期首金額</th><th>購入金額</th><th>内部払出</th><th>期末数量</th><th>期末単価</th><th>財務集計</th><th>品目原価</th><th>操作</th></tr></thead><tbody>
+          <div className="table-scroll"><table className="data-table input-table wide-table" aria-label="副産物原価"><thead><tr><th>品目名</th><th>控除先酒種</th><th>発生数量</th><th>評価単価</th><th>発生評価額</th><th>期首金額</th><th>購入金額</th><th>内部払出</th><th>期末数量</th><th>期末単価</th><th>財務集計</th><th>品目原価</th><th>操作</th></tr></thead><tbody>
             {model.byproducts.map((row, index) => {
               const produced = roundMoney(numeric(row.producedQty) * numeric(row.valuationUnit));
               const ending = roundMoney(numeric(row.closingQty) * numeric(row.closingUnit));
@@ -96,7 +96,7 @@ export function SpecialScreen({ model, calc, locked, updateModel, recordAudit, o
                 <td><Money value={cogs} />{!row.includeInFinancialTotals && <small>（参考）</small>}{excludedNonzero && <span className="byproduct-error-message"><strong>要修正</strong>財務集計対象外の金額が残っているため年度確定できません。財務集計対象に戻すか金額を0円にしてください。内部振替先は未確定です。</span>}</td><td><button className="icon-danger" type="button" onClick={() => deleteByproduct(row)} disabled={locked}>削除</button></td>
               </tr>;
             })}
-          </tbody><tfoot><tr><th colSpan={4}>合計</th><td><Money value={Object.values(calc.byproducts.credits).reduce((a, b) => a + b, 0)} /></td><td colSpan={6} /><td /><td><Money value={calc.byproducts.cogsTotal} /></td><td /></tr></tfoot></table></div>
+          </tbody><tfoot><tr><th colSpan={4}>合計</th><td aria-label="発生評価額合計"><Money value={Object.values(calc.byproducts.credits).reduce((a, b) => a + b, 0)} /></td><td colSpan={6} /><td aria-label="品目原価合計"><Money value={calc.byproducts.cogsTotal} /></td><td aria-label="操作列" /></tr></tfoot></table></div>
         </section>
       )}
 

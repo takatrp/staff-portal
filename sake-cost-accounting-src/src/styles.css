@@ -91,7 +91,7 @@ main { min-width: 0; padding: 26px; background: radial-gradient(circle at 78% 10
 .kpi-grid article > span { color: #657083; font-size: 12px; font-weight: 700; }
 .kpi-grid strong { font-size: clamp(18px, 2vw, 24px); }
 .kpi-grid small { color: #7c8593; font-size: 11px; }
-.workflow-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 9px; margin-top: 20px; }
+.workflow-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 9px; margin-top: 20px; }
 .workflow-grid button { position: relative; min-height: 142px; display: flex; flex-direction: column; align-items: flex-start; gap: 9px; padding: 18px; text-align: left; border: 1px solid var(--line); border-radius: 9px; background: #fff; color: var(--ink); }
 .workflow-step { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--navy); color: white; font-size: 12px; font-weight: 900; }
 .workflow-status { position: absolute; top: 16px; right: 13px; padding: 3px 7px; border-radius: 999px; background: #edf1f5; color: #647083; font-size: 10px; font-weight: 800; }

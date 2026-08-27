@@ -7,7 +7,8 @@ const workflow: Array<{ id: ScreenId; step: number; title: string; detail: strin
   { id: "manufacturing-allocation", step: 2, title: "製造費用按分", detail: "数量基準と直課額を確認" },
   { id: "packaging-allocation", step: 3, title: "製品費用按分", detail: "詰口数量で包装費用を配賦" },
   { id: "products", step: 4, title: "製品原価", detail: "原酒から製品までを繰越計算" },
-  { id: "inventory", step: 5, title: "棚卸・売上原価", detail: "最終確認して年度を確定" },
+  { id: "special", step: 5, title: "甘酒・副産物・食品", detail: "甘酒・副産物・食品の原価を確認" },
+  { id: "inventory", step: 6, title: "棚卸・売上原価", detail: "最終確認して年度を確定" },
 ];
 
 export function HomeScreen({ model, calc, navigate }: CommonScreenProps) {
