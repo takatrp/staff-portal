@@ -13,6 +13,7 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "build": "tsc -b && vite build && node scripts/normalize-built-html.mjs",
+    "verify:pages": "node scripts/verify-pages-output.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
