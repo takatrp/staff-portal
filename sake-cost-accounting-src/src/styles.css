@@ -130,6 +130,9 @@ main { min-width: 0; padding: 26px; background: radial-gradient(circle at 78% 10
 .selected-row th, .selected-row td { background-color: #edf5ff !important; }
 .inactive-cell, .inactive-row { color: #8993a1; background: #f5f6f7 !important; }
 .inactive-row small { display: block; color: #9b5e2d; font-size: 9px; }
+.byproduct-error-row th, .byproduct-error-row td { background-color: var(--error-soft) !important; }
+.byproduct-error-message { display: block; min-width: 220px; margin-top: 7px; color: var(--error); font-size: 10px; line-height: 1.45; text-align: left; white-space: normal; }
+.byproduct-error-message strong { display: block; font-size: 11px; }
 .derived-row td { background: #f7f9fb; }
 .emphasis-row th, .emphasis-row td { background: #e9f3ff; color: #063f7d; font-weight: 900; }
 .result-cell { font-weight: 900; }

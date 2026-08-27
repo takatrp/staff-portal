@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ALCOHOL_CATEGORY_IDS, type ByproductRow, type FoodProductRow } from "../types";
 import { Money, NumberInput, PanelTitle, StepNavigation, TextCommitInput } from "../components";
 import { numeric, roundMoney } from "../logic/number";
@@ -9,6 +9,24 @@ type SpecialTab = "amazake" | "byproducts" | "food";
 export function SpecialScreen({ model, calc, locked, updateModel, recordAudit, openDialog, navigate }: CommonScreenProps) {
   const [tab, setTab] = useState<SpecialTab>("amazake");
   const commit = (label: string) => (before: number | null, after: number | null) => recordAudit(label, before, after);
+
+  useEffect(() => {
+    const handler = (event: Event) => {
+      const detail = (event as CustomEvent<{ rowId?: string }>).detail;
+      if (!detail?.rowId) return;
+      if (model.byproducts.some((row) => row.id === detail.rowId)) setTab("byproducts");
+      else if (model.food.products.some((row) => row.id === detail.rowId)) setTab("food");
+      else return;
+      window.setTimeout(() => {
+        const element = document.getElementById(`row-${detail.rowId}`);
+        element?.scrollIntoView({ behavior: "smooth", block: "center" });
+        element?.classList.add("temporary-highlight");
+        if (element) window.setTimeout(() => element.classList.remove("temporary-highlight"), 2200);
+      }, 0);
+    };
+    window.addEventListener("sake-cost-focus", handler);
+    return () => window.removeEventListener("sake-cost-focus", handler);
+  }, [model.byproducts, model.food.products]);
 
   const addByproduct = () => openDialog({
     title: "副産物の行を追加",
@@ -62,7 +80,8 @@ export function SpecialScreen({ model, calc, locked, updateModel, recordAudit, o
               const produced = roundMoney(numeric(row.producedQty) * numeric(row.valuationUnit));
               const ending = roundMoney(numeric(row.closingQty) * numeric(row.closingUnit));
               const cogs = roundMoney(numeric(row.openingAmount) + produced + numeric(row.purchaseAmount) - numeric(row.internalIssueAmount) - ending);
-              return <tr key={row.id} id={`row-${row.id}`}>
+              const excludedNonzero = calc.checks.some((item) => item.id === `byproduct:${row.id}:excluded-nonzero`);
+              return <tr key={row.id} id={`row-${row.id}`} className={excludedNonzero ? "byproduct-error-row" : undefined}>
                 <th><TextCommitInput value={row.label} onChange={(value) => updateModel((draft) => { draft.byproducts[index].label = value; })} onCommit={(before, after) => recordAudit(`${row.id} 品目名`, before, after, "副産物名を変更")} disabled={locked} ariaLabel={`${row.label} 品目名`} /></th>
                 <td><select value={row.creditCategory} onChange={(event) => updateModel((draft) => { draft.byproducts[index].creditCategory = event.target.value as ByproductRow["creditCategory"]; }, "副産物控除先を変更", row.label, `${model.categories[row.creditCategory].label} → ${model.categories[event.target.value as ByproductRow["creditCategory"]].label}`)} disabled={locked}>{ALCOHOL_CATEGORY_IDS.map((id) => <option key={id} value={id}>{model.categories[id].label}</option>)}</select></td>
                 <td><NumberInput value={row.producedQty} onChange={(value) => updateModel((draft) => { draft.byproducts[index].producedQty = value; })} onCommit={commit(`${row.label} 発生数量`)} disabled={locked} kind="quantity" ariaLabel={`${row.label} 発生数量`} /></td>
@@ -74,7 +93,7 @@ export function SpecialScreen({ model, calc, locked, updateModel, recordAudit, o
                 <td><NumberInput value={row.closingQty} onChange={(value) => updateModel((draft) => { draft.byproducts[index].closingQty = value; })} onCommit={commit(`${row.label} 期末数量`)} disabled={locked} kind="quantity" ariaLabel={`${row.label} 期末数量`} /></td>
                 <td><NumberInput value={row.closingUnit} onChange={(value) => updateModel((draft) => { draft.byproducts[index].closingUnit = value; })} onCommit={commit(`${row.label} 期末単価`)} disabled={locked} kind="money" ariaLabel={`${row.label} 期末単価`} /></td>
                 <td><input type="checkbox" checked={row.includeInFinancialTotals} onChange={(event) => updateModel((draft) => { draft.byproducts[index].includeInFinancialTotals = event.target.checked; }, "副産物の財務集計区分を変更", row.label, event.target.checked ? "集計対象" : "集計対象外")} disabled={locked} aria-label={`${row.label} 財務集計対象`} /></td>
-                <td><Money value={cogs} />{!row.includeInFinancialTotals && <small>（参考）</small>}</td><td><button className="icon-danger" type="button" onClick={() => deleteByproduct(row)} disabled={locked}>削除</button></td>
+                <td><Money value={cogs} />{!row.includeInFinancialTotals && <small>（参考）</small>}{excludedNonzero && <span className="byproduct-error-message"><strong>要修正</strong>財務集計対象外の金額が残っているため年度確定できません。財務集計対象に戻すか金額を0円にしてください。内部振替先は未確定です。</span>}</td><td><button className="icon-danger" type="button" onClick={() => deleteByproduct(row)} disabled={locked}>削除</button></td>
               </tr>;
             })}
           </tbody><tfoot><tr><th colSpan={4}>合計</th><td><Money value={Object.values(calc.byproducts.credits).reduce((a, b) => a + b, 0)} /></td><td colSpan={6} /><td /><td><Money value={calc.byproducts.cogsTotal} /></td><td /></tr></tfoot></table></div>
