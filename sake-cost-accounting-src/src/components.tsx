@@ -120,11 +120,13 @@ export function NumberInput({
             commitDraft();
           }}
           onKeyDown={(event) => {
-            if (["Enter", "ArrowDown", "ArrowUp", "ArrowRight", "ArrowLeft"].includes(event.key) && !commitDraft()) {
+            const gridTarget = getGridNavigationTarget(event);
+            const shouldCommit = event.key === "Enter" || Boolean(gridTarget);
+            if (shouldCommit && !commitDraft()) {
               event.preventDefault();
               return;
             }
-            handleGridKeyDown(event);
+            if (gridTarget) moveGridFocus(event, gridTarget);
           }}
           disabled={disabled}
           aria-label={ariaLabel}
@@ -166,13 +168,13 @@ export function TextCommitInput({ value, onChange, onCommit, disabled, ariaLabel
   );
 }
 
-function handleGridKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+function getGridNavigationTarget(event: KeyboardEvent<HTMLInputElement>): HTMLInputElement | null {
   const input = event.currentTarget;
   const table = input.closest("table");
-  if (!table) return;
+  if (!table) return null;
   const row = Number(input.dataset.gridRow);
   const col = Number(input.dataset.gridCol);
-  if (!Number.isFinite(row) || !Number.isFinite(col)) return;
+  if (!Number.isFinite(row) || !Number.isFinite(col)) return null;
   let nextRow = row;
   let nextCol = col;
   if (event.key === "Enter") nextRow += event.shiftKey ? -1 : 1;
@@ -180,13 +182,14 @@ function handleGridKeyDown(event: KeyboardEvent<HTMLInputElement>) {
   else if (event.key === "ArrowUp") nextRow -= 1;
   else if (event.key === "ArrowRight") nextCol += 1;
   else if (event.key === "ArrowLeft") nextCol -= 1;
-  else return;
-  const target = table.querySelector<HTMLInputElement>(`[data-grid-input="true"][data-grid-row="${nextRow}"][data-grid-col="${nextCol}"]:not(:disabled)`);
-  if (target) {
-    event.preventDefault();
-    target.focus();
-    target.select();
-  }
+  else return null;
+  return table.querySelector<HTMLInputElement>(`[data-grid-input="true"][data-grid-row="${nextRow}"][data-grid-col="${nextCol}"]:not(:disabled)`);
+}
+
+function moveGridFocus(event: KeyboardEvent<HTMLInputElement>, target: HTMLInputElement) {
+  event.preventDefault();
+  target.focus();
+  target.select();
 }
 
 export function Money({ value }: { value: number }) {

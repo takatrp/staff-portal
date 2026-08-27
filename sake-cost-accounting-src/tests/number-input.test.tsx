@@ -81,4 +81,20 @@ describe("NumberInput", () => {
     expect(screen.getByRole("textbox", { name: "2行目" })).toHaveFocus();
     expect(first).toHaveValue("10.25");
   });
+
+  it("表外の入力では矢印キーだけで確定せず、Enterで確定する", async () => {
+    const onCommit = vi.fn();
+    const user = userEvent.setup();
+    render(<ControlledInput onCommit={onCommit} />);
+    const input = screen.getByRole("textbox", { name: "検証入力" });
+    await user.clear(input);
+    await user.type(input, "10.25");
+    await user.keyboard("{ArrowLeft}{ArrowRight}");
+    expect(screen.getByLabelText("モデル値")).toHaveTextContent("7");
+    expect(onCommit).not.toHaveBeenCalled();
+
+    await user.keyboard("{Enter}");
+    expect(screen.getByLabelText("モデル値")).toHaveTextContent("10.25");
+    expect(onCommit).toHaveBeenCalledWith(7, 10.25);
+  });
 });
