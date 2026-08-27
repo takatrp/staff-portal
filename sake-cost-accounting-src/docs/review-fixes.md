@@ -1,5 +1,16 @@
 # 実装レビュー対応
 
+## 第3回レビュー対応
+
+| 優先度 | 対応内容 | 主な変更ファイル | テスト | 残課題 |
+|---|---|---|---|---|
+| P0 | 起動時の無言フォールバックを廃止し、`ready`・`recovery-required`・`storage-unavailable`を分離 | `initial-load.ts`、`App.tsx` | 保存なし、v1/v2/v3、構文・スキーマ・範囲不正、getItem例外 | なし |
+| P0 | 復旧画面で元文字列の完全保持・ファイル保存・確認付き初期化・日時付き別キー退避を実装。復旧中は通常Appをマウントせず自動保存を停止 | `RecoveryScreen.tsx`、`download.ts`、`App.tsx` | 元キー維持、ダウンロード一致、キャンセル、退避成功／失敗、明示初期化 | サーバーバックアップは対象外 |
+| P0 | localStorage利用不可または後続保存失敗時に、メモリ限定セッションへ切替えて常時警告 | `App.tsx`、`HomeScreen.tsx`、`DataScreen.tsx` | getItem／setItem例外の画面テスト | なし |
+| P1 | ソースから再ビルドしたPages成果物の差分、HTML参照資産、base path、旧資産、robots metaをCIで検証 | `verify-pages-output.mjs`、`package.json`、CI | ローカルbuild・`verify:pages`、差分検出 | GitHub Actions初回実行はPR作成後に確認 |
+
+GitHub Actionsは本変更のPull Request作成前であり、実際の実行状態は未確認。成功済みとは扱わず、PR作成後に必須チェック `Lint, tests, build and Chromium E2E` とPages成果物検証結果を確認する。
+
 ## 第2回レビュー残課題
 
 | 優先度 | 対応内容 | 主な変更ファイル | テスト | 残課題 |

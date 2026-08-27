@@ -17,17 +17,18 @@
 Windowsでは次のコマンドを使用します。
 
 ```powershell
-npm.cmd install
+npm.cmd ci
 npm.cmd run dev
 npm.cmd run lint
 npm.cmd test
-npm.cmd run test:e2e
 npm.cmd run build
+npm.cmd run verify:pages
+npm.cmd run test:e2e -- --reporter=dot
 ```
 
-`npm.cmd run build` は型検査後、公開物を `../sake-cost-accounting-mockup/` へ出力します。GitHub Pagesへ反映する場合は、生成物を含むブランチをレビュー・マージし、Pagesワークフロー完了後に公開URLを直接再読み込みしてJS/CSSの404と表示内容を確認します。
+`npm.cmd run build` は型検査後、公開物を `../sake-cost-accounting-mockup/` へ出力します。`npm.cmd run verify:pages` はHTMLが参照するJS/CSS、公開base path、未参照の旧資産、`noindex,nofollow,noarchive`、生成物の未ステージ差分・未追跡ファイルを検査します。GitHub Pagesへ反映する場合は、生成物を含むブランチをレビュー・マージし、Pagesワークフロー完了後に公開URLを直接再読み込みしてJS/CSSの404と表示内容を確認します。
 
-Pull Requestと`main`への対象変更では、`.github/workflows/sake-cost-accounting-ci.yml`がNode.js 24で`npm ci`、lint、単体・コンポーネントテスト、ビルド、Chromium E2Eを自動実行します。ローカルでも上記コマンドを同じ順序で実行できます。
+Pull Requestと`main`へのソース・公開物の変更では、`.github/workflows/sake-cost-accounting-ci.yml`がNode.js 24で`npm ci`、lint、単体・コンポーネントテスト、ビルド、Pages成果物整合性確認、Chromium E2Eを自動実行します。ローカルでも上記コマンドを同じ順序で実行できます。
 
 ## データ保存
 
@@ -37,6 +38,10 @@ Pull Requestと`main`への対象変更では、`.github/workflows/sake-cost-acc
 - 不正JSON、未対応スキーマ、必要項目が欠けたデータは拒否し、復元前には確認ダイアログを表示します。
 - UIで負数を許可していない数量・金額・単価・比率を含むJSONも拒否し、失敗時は現在データを変更しません。材料の振替・調整、原酒の振替数量・金額、商品の期首調整だけは負数を許可します。
 - 確定時の入力と主要結果は最大10件の読み取り専用スナップショットとしてJSONに保存します。履歴自身は再帰的に含めません。
+- 起動時に保存データを解析・移行できない場合は通常画面を開かず、復旧画面へ移行します。元のlocalStorage文字列は削除・上書きせず、自動保存も開始しません。
+- 復旧画面の「復旧用データを保存」は、解析不能な内容を含め元文字列を変更せず`.txt`へ保存します。rawデータ全文は画面に表示しません。
+- 「正常デモで初期化」は確認ダイアログ後の明示操作です。可能な場合は元文字列を日時付きリカバリーキーへ退避してから元キーを置き換え、操作履歴へ記録します。退避に失敗した場合は元キーを変更せず、別の確認を経た場合だけ退避なしで続行できます。
+- localStorage自体を読み取れない場合は正常デモをメモリ上だけで開き、常時「このセッションは自動保存されません」と表示します。JSON保存は利用できます。
 
 localStorage、JSON、入力ハッシュはクライアント側の利便機能であり、改ざん防止や耐障害バックアップを保証しません。ブラウザ初期化・端末故障に備えてJSONを別媒体へ保存してください。
 
