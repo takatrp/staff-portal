@@ -74,7 +74,9 @@ for (const directive of ["noindex", "nofollow", "noarchive"]) {
 const trackedDiff = runGit(["diff", "--exit-code", "HEAD", "--", outputPath]);
 if (trackedDiff.status !== 0) {
   const summary = runGit(["diff", "--name-status", "HEAD", "--", outputPath]);
+  const indexDiff = runGit(["diff", "--", `${outputPath}/index.html`]);
   process.stderr.write(summary.stdout || trackedDiff.stderr);
+  if (indexDiff.stdout) process.stderr.write(indexDiff.stdout);
   fail("ビルド後のPages成果物がHEADのコミット内容と一致しません。");
 }
 
