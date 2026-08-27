@@ -34,7 +34,7 @@ describe("主要画面スモーク", () => {
     const user = userEvent.setup();
     render(<App />);
     await user.click(within(screen.getByRole("navigation", { name: "メインメニュー" })).getByRole("button", { name: "甘酒・副産物等" }));
-    await user.click(screen.getByRole("button", { name: "副産物", exact: true }));
+    await user.click(screen.getByRole("button", { name: "副産物" }));
     const table = screen.getByRole("table", { name: "副産物原価" });
     expect(table.querySelectorAll("thead th")).toHaveLength(13);
     const footer = within(table).getByRole("row", { name: /合計/ });
