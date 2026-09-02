@@ -1,0 +1,66 @@
+name: Staff portal CI
+
+on:
+  pull_request:
+    paths:
+      - "index.html"
+      - ".gitignore"
+      - "*.png"
+      - "*.jpg"
+      - ".github/workflows/staff-portal-ci.yml"
+      - "sake-cost-accounting-src/scripts/verify-staff-portal-e2e.mjs"
+  push:
+    branches:
+      - main
+    paths:
+      - "index.html"
+      - ".gitignore"
+      - "*.png"
+      - "*.jpg"
+      - ".github/workflows/staff-portal-ci.yml"
+      - "sake-cost-accounting-src/scripts/verify-staff-portal-e2e.mjs"
+
+permissions:
+  contents: read
+
+jobs:
+  verify-staff-portal:
+    name: Lint, tests, build and Chromium E2E
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: sake-cost-accounting-src/package-lock.json
+      - name: Install dependencies
+        working-directory: sake-cost-accounting-src
+        run: npm ci
+      - name: Lint
+        working-directory: sake-cost-accounting-src
+        run: npm run lint
+      - name: Run unit and component tests
+        working-directory: sake-cost-accounting-src
+        run: npm test
+      - name: Build
+        working-directory: sake-cost-accounting-src
+        run: npm run build
+      - name: Install Chromium
+        working-directory: sake-cost-accounting-src
+        run: npx playwright install --with-deps chromium
+      - name: Run staff portal Chromium E2E
+        shell: bash
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 --directory . >/tmp/staff-portal-http.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid"' EXIT
+          for attempt in {1..20}; do
+            if curl --fail --silent http://127.0.0.1:4173/ >/dev/null; then
+              break
+            fi
+            sleep 0.5
+          done
+          node sake-cost-accounting-src/scripts/verify-staff-portal-e2e.mjs
