@@ -28,6 +28,9 @@ page.on("pageerror", (error) => runtimeErrors.push(error.message));
 page.on("console", (message) => {
   if (message.type() === "error") runtimeErrors.push(message.text());
 });
+await page.route("https://www.googletagmanager.com/**", (route) =>
+  route.fulfill({ status: 200, contentType: "application/javascript", body: "" }),
+);
 
 try {
   await page.goto(portalUrl, { waitUntil: "domcontentloaded" });
