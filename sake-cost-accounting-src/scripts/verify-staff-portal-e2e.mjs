@@ -51,15 +51,24 @@ try {
   );
   await page.reload({ waitUntil: "domcontentloaded" });
   assert.equal(await page.locator("#portal-content").isVisible(), true);
-  assert.equal(await page.locator(".tool-item:visible").count(), 11);
-  assert.equal(await page.locator("#visible-count").innerText(), "11");
+  assert.equal(await page.locator(".tool-item:visible").count(), 12);
+  assert.equal(await page.locator("#visible-count").innerText(), "12");
   assert.equal(await page.locator("script[src*='googletagmanager.com']").count(), 1);
+
+  const archiveCard = page.locator('.tool-item[href="https://takatrp.github.io/mirai-archive/"]');
+  assert.equal(await archiveCard.count(), 1);
+  assert.equal(await archiveCard.getAttribute("data-category"), "other");
+  assert.match(await archiveCard.innerText(), /月次決算体制の構築支援 実践勉強会アーカイブ/);
+  await page.locator("#category-filter").selectOption("other");
+  assert.equal(await page.locator(".tool-item:visible").count(), 3);
+  assert.equal(await page.locator("#visible-count").innerText(), "3");
+  await page.getByRole("button", { name: "リセット" }).click();
 
   await page.getByPlaceholder("ツール名・業務内容で検索").fill("消費税");
   assert.equal(await page.locator(".tool-item:visible").count(), 2);
   assert.equal(await page.locator("#visible-count").innerText(), "2");
   await page.getByRole("button", { name: "リセット" }).click();
-  assert.equal(await page.locator(".tool-item:visible").count(), 11);
+  assert.equal(await page.locator(".tool-item:visible").count(), 12);
 
   await Promise.all([
     page.waitForNavigation({ waitUntil: "domcontentloaded" }),
