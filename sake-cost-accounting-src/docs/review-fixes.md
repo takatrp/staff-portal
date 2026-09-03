@@ -1,5 +1,29 @@
 # 実装レビュー対応
 
+## 第3回レビュー対応
+
+| 優先度 | 対応内容 | 主な変更ファイル | テスト | 残課題 |
+|---|---|---|---|---|
+| P0 | 起動時の無言フォールバックを廃止し、`ready`・`recovery-required`・`storage-unavailable`を分離 | `initial-load.ts`、`App.tsx` | 保存なし、v1/v2/v3、構文・スキーマ・範囲不正、getItem例外 | なし |
+| P0 | 復旧画面で元文字列の完全保持・ファイル保存・確認付き初期化・日時付き別キー退避を実装。復旧中は通常Appをマウントせず自動保存を停止 | `RecoveryScreen.tsx`、`download.ts`、`App.tsx` | 元キー維持、ダウンロード一致、キャンセル、退避成功／失敗、明示初期化 | サーバーバックアップは対象外 |
+| P0 | localStorage利用不可または後続保存失敗時に、メモリ限定セッションへ切替えて常時警告 | `App.tsx`、`HomeScreen.tsx`、`DataScreen.tsx` | getItem／setItem例外の画面テスト | なし |
+| P1 | ソースから再ビルドしたPages成果物の差分、HTML参照資産、base path、旧資産、robots metaをCIで検証 | `verify-pages-output.mjs`、`package.json`、CI | ローカルbuild・`verify:pages`、差分検出 | GitHub Actions初回実行はPR作成後に確認 |
+
+GitHub Actionsは本変更のPull Request作成前であり、実際の実行状態は未確認。成功済みとは扱わず、PR作成後に必須チェック `Lint, tests, build and Chromium E2E` とPages成果物検証結果を確認する。
+
+## 第2回レビュー残課題
+
+| 優先度 | 対応内容 | 主な変更ファイル | テスト | 残課題 |
+|---|---|---|---|---|
+| P0-1 | 財務集計対象外副産物の非ゼロ金額を安定ID付きエラーにし、対象行へ「要修正」を表示。検算一覧から副産物タブ・行へ移動可能化 | `calculation.ts`、`defaults.ts`、`SpecialScreen.tsx` | 発生・期首・期末、対象内、全0円、正常／エラーデモ | 内部振替先の業務ルール確認 |
+| P0-2 | 入力中の下書きと確定値を分離し、小数・全角小数点・リアルタイムコンマ・Enter確定を修正。不正入力時のモデルを保護 | `components.tsx` | `number-input.test.tsx`、Playwright逐次入力 | なし |
+| P1-1 | ホームを「甘酒・副産物・食品」を含む6工程へ更新 | `HomeScreen.tsx`、`styles.css` | コンポーネント・4画面幅E2E | なし |
+| P1-2 | 副産物表の合計行を13列へそろえ、発生評価額・品目原価・操作列を分離 | `SpecialScreen.tsx` | DOM論理列数テスト | なし |
+| P1-3 | UIで禁止した負数をJSON復元時に拒否し、配賦計算にも4種類の防御的検算を追加 | `migration.ts`、`allocation.ts` | 許可／禁止範囲、無効時無配賦、復元失敗時保持 | なし |
+| P2 | PRとmain更新時にlint・test・build・Chromium E2Eを行うCIを追加 | `.github/workflows/sake-cost-accounting-ci.yml` | ローカル同一コマンド、PR上Actions | GitHub上の初回実行確認 |
+
+米麹等の内部振替先は業務ルール未確定のため、本対応では推測による自動振替を実装していない。非ゼロ金額がある場合は年度確定を停止する。
+
 ## ソース復元
 
 - [x] 公開物、リポジトリ履歴、関連作業領域を調査
