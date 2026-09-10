@@ -51,8 +51,8 @@ try {
   );
   await page.reload({ waitUntil: "domcontentloaded" });
   assert.equal(await page.locator("#portal-content").isVisible(), true);
-  assert.equal(await page.locator(".tool-item:visible").count(), 12);
-  assert.equal(await page.locator("#visible-count").innerText(), "12");
+  assert.equal(await page.locator(".tool-item:visible").count(), 13);
+  assert.equal(await page.locator("#visible-count").innerText(), "13");
   assert.equal(await page.locator("script[src*='googletagmanager.com']").count(), 1);
 
   const archiveCard = page.locator('.tool-item[href="https://takatrp.github.io/mirai-archive/"]');
@@ -65,10 +65,15 @@ try {
   await page.getByRole("button", { name: "リセット" }).click();
 
   await page.getByPlaceholder("ツール名・業務内容で検索").fill("消費税");
-  assert.equal(await page.locator(".tool-item:visible").count(), 2);
-  assert.equal(await page.locator("#visible-count").innerText(), "2");
+  assert.equal(await page.locator(".tool-item:visible").count(), 3);
+  await page.getByPlaceholder("ツール名・業務内容で検索").fill("経過措置");
+  assert.equal(await page.locator(".tool-item:visible").count(), 1);
+  const invoiceCard = page.locator('.tool-item[href="https://takatrp.github.io/invoice-transition-impact/"]');
+  assert.equal(await invoiceCard.isVisible(), true);
+  assert.equal(await invoiceCard.getAttribute("data-category"), "advice");
+  assert.equal(await page.locator("#visible-count").innerText(), "1");
   await page.getByRole("button", { name: "リセット" }).click();
-  assert.equal(await page.locator(".tool-item:visible").count(), 12);
+  assert.equal(await page.locator(".tool-item:visible").count(), 13);
 
   await Promise.all([
     page.waitForNavigation({ waitUntil: "domcontentloaded" }),
