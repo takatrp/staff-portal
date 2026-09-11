@@ -7,4 +7,8 @@ beforeEach(() => {
   window.scrollTo = vi.fn();
 });
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
+});

@@ -54,7 +54,7 @@ describe("原価・数量・棚卸・売上原価", () => {
   it("副産物発生額を指定酒種の製造原価から控除し、副産物原価にも反映する", () => {
     const model = createNormalDemoModel();
     const result = calculateModel(model);
-    const produced = 100 * 500 + 20 * 400;
+    const produced = 100 * 500;
     expect(result.byproducts.credits.sake).toBe(produced);
     expect(result.byproducts.endingInventory).toBe(12_000);
     expect(result.byproducts.cogsTotal).toBe(61_000);
@@ -63,6 +63,8 @@ describe("原価・数量・棚卸・売上原価", () => {
   it("副産物の内部払出を控除し、財務集計対象外品目は棚卸・売上原価合計から外す", () => {
     const model = createNormalDemoModel();
     const riceKoji = model.byproducts.find((row) => row.id === "rice-koji")!;
+    riceKoji.producedQty = 20;
+    riceKoji.closingQty = 5;
     riceKoji.internalIssueAmount = 3_000;
     let result = calculateModel(model);
     expect(result.byproducts.cogsTotal).toBe(61_000);
@@ -72,6 +74,30 @@ describe("原価・数量・棚卸・売上原価", () => {
     result = calculateModel(model);
     expect(result.byproducts.cogsTotal).toBe(64_000);
     expect(result.byproducts.endingInventory).toBe(14_000);
+  });
+
+  it.each([
+    ["発生評価額", (model: ReturnType<typeof createNormalDemoModel>) => { model.byproducts[1].producedQty = 1; }],
+    ["期首金額", (model: ReturnType<typeof createNormalDemoModel>) => { model.byproducts[1].openingAmount = 1; }],
+    ["期末評価額", (model: ReturnType<typeof createNormalDemoModel>) => { model.byproducts[1].closingQty = 1; }],
+  ])("財務集計対象外の副産物に%sがあると確定阻止エラーにする", (_, mutate) => {
+    const model = createNormalDemoModel();
+    mutate(model);
+    expect(calculateModel(model).checks.map((item) => item.id)).toContain("byproduct:rice-koji:excluded-nonzero");
+  });
+
+  it("財務集計対象の副産物に金額があっても対象外エラーにしない", () => {
+    const model = createNormalDemoModel();
+    model.byproducts[1].includeInFinancialTotals = true;
+    model.byproducts[1].openingAmount = 1;
+    expect(calculateModel(model).checks.map((item) => item.id)).not.toContain("byproduct:rice-koji:excluded-nonzero");
+  });
+
+  it("財務集計対象外でも全金額が0円なら対象外エラーにしない", () => {
+    const result = calculateModel(createNormalDemoModel());
+    expect(result.checks.map((item) => item.id)).not.toContain("byproduct:rice-koji:excluded-nonzero");
+    expect(result.criticalCount).toBe(0);
+    expect(result.warningCount).toBe(0);
   });
 
   it("評価損金額を期末金額とは独立して詰口製品売上原価から控除する", () => {
@@ -127,5 +153,6 @@ describe("原価・数量・棚卸・売上原価", () => {
     expect(ids).toContain("quantity:sake:packaging-mismatch");
     expect(ids).toContain("product:sake:finished-negative-cogs");
     expect(ids).toContain("food:allocation-difference");
+    expect(ids).toContain("byproduct:rice-koji:excluded-nonzero");
   });
 });
