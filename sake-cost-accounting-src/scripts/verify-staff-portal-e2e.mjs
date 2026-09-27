@@ -51,9 +51,14 @@ try {
   );
   await page.reload({ waitUntil: "domcontentloaded" });
   assert.equal(await page.locator("#portal-content").isVisible(), true);
-  assert.equal(await page.locator(".tool-item:visible").count(), 13);
-  assert.equal(await page.locator("#visible-count").innerText(), "13");
+  assert.equal(await page.locator(".tool-item:visible").count(), 14);
+  assert.equal(await page.locator("#visible-count").innerText(), "14");
   assert.equal(await page.locator("script[src*='googletagmanager.com']").count(), 1);
+
+  const journalCard = page.locator('.tool-item[href="https://script.google.com/macros/s/AKfycbydJOF19Yr7rajctRI5pL0gIYzDoyk6HNbweEssnN4arlJdG4M64nD0iQ0EI9BZXyCZ/exec"]');
+  assert.equal(await journalCard.count(), 1);
+  assert.equal(await journalCard.getAttribute("data-category"), "advice");
+  assert.match(await journalCard.innerText(), /仕訳自動化率集計ツール/);
 
   const archiveCard = page.locator('.tool-item[href="https://takatrp.github.io/mirai-archive/"]');
   assert.equal(await archiveCard.count(), 1);
@@ -73,7 +78,7 @@ try {
   assert.equal(await invoiceCard.getAttribute("data-category"), "advice");
   assert.equal(await page.locator("#visible-count").innerText(), "1");
   await page.getByRole("button", { name: "リセット" }).click();
-  assert.equal(await page.locator(".tool-item:visible").count(), 13);
+  assert.equal(await page.locator(".tool-item:visible").count(), 14);
 
   await Promise.all([
     page.waitForNavigation({ waitUntil: "domcontentloaded" }),
