@@ -76,6 +76,22 @@ export function calculateAllocationRow(
   const ineligibleIds = CATEGORY_IDS.filter((id) => !model.categories[id].allocationEligible);
   const total = roundMoney(numeric(row.total));
 
+  const driverMap = row.method === "manufacturing-volume"
+    ? model.allocationDrivers.manufacturing
+    : row.method === "packaging-volume"
+      ? model.allocationDrivers.packaging
+      : null;
+  const negativeDrivers = driverMap ? CATEGORY_IDS.filter((id) => numeric(driverMap[id]) < 0) : [];
+  const negativeDirect = CATEGORY_IDS.filter((id) => numeric(row.direct[id]) < 0);
+  const negativeManual = CATEGORY_IDS.filter((id) => numeric(row.manual[id]) < 0);
+  const negativeCustomWeights = CATEGORY_IDS.filter((id) => numeric(row.customWeights[id]) < 0);
+
+  if (negativeDrivers.length > 0) checks.push(allocationCheck(row, screenId, "negative-driver", `${row.label}の配賦基準数量がマイナスです`, `${negativeDrivers.map((id) => model.categories[id].label).join("、")}の配賦基準数量を0以上にしてください。`));
+  if (negativeDirect.length > 0) checks.push(allocationCheck(row, screenId, "negative-direct", `${row.label}の直課額がマイナスです`, `${negativeDirect.map((id) => model.categories[id].label).join("、")}の直課額を0円以上にしてください。`));
+  if (negativeManual.length > 0) checks.push(allocationCheck(row, screenId, "negative-manual", `${row.label}の個別入力額がマイナスです`, `${negativeManual.map((id) => model.categories[id].label).join("、")}の個別入力額を0円以上にしてください。`));
+  if (negativeCustomWeights.length > 0) checks.push(allocationCheck(row, screenId, "negative-custom-weight", `${row.label}の任意比率がマイナスです`, `${negativeCustomWeights.map((id) => model.categories[id].label).join("、")}の任意比率を0以上にしてください。`));
+  const hasNegativeInput = negativeDrivers.length + negativeDirect.length + negativeManual.length + negativeCustomWeights.length > 0;
+
   if (eligibleIds.length === 0) {
     checks.push(
       allocationCheck(row, screenId, "no-targets", `${row.label}の共通費配賦対象がありません`, "マスター設定で1酒種以上を共通費配賦対象にしてください。"),
@@ -111,7 +127,7 @@ export function calculateAllocationRow(
         ),
       );
     }
-    for (const id of eligibleIds) allocations[id] = roundMoney(numeric(row.manual[id]));
+    if (!hasNegativeInput) for (const id of eligibleIds) allocations[id] = roundMoney(numeric(row.manual[id]));
     const manualTotal = sum(eligibleIds.map((id) => allocations[id]));
     const difference = roundMoney(total - manualTotal);
     if (!isMoneyEqual(manualTotal, total)) {
@@ -175,7 +191,7 @@ export function calculateAllocationRow(
   if (checks.length === 0) {
     const shared = allocateLargestRemainder(distributable, weights);
     for (const id of eligibleIds) allocations[id] = roundMoney(numeric(row.direct[id]) + shared[id]);
-  } else {
+  } else if (!hasNegativeInput) {
     // Invalid states never push a residual into a particular category.
     for (const id of eligibleIds) allocations[id] = roundMoney(numeric(row.direct[id]));
   }

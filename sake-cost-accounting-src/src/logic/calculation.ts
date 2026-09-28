@@ -135,6 +135,20 @@ export function calculateModel(model: SakeCostModel): CalculationResult {
     const ending = roundMoney(numeric(row.closingQty) * numeric(row.closingUnit));
     const cogs = roundMoney(numeric(row.openingAmount) + produced + numeric(row.purchaseAmount) - numeric(row.internalIssueAmount) - ending);
     byproductCredits[row.creditCategory] = roundMoney(byproductCredits[row.creditCategory] + produced);
+    const excludedAmounts = [numeric(row.openingAmount), produced, numeric(row.purchaseAmount), numeric(row.internalIssueAmount), ending].map(roundMoney);
+    if (!row.includeInFinancialTotals && excludedAmounts.some((amount) => amount !== 0)) {
+      checks.push(
+        check(
+          `byproduct:${row.id}:excluded-nonzero`,
+          "error",
+          "副産物",
+          "special",
+          `${row.label}は財務集計対象外ですが、金額が残っています`,
+          "財務集計対象外の副産物は、内部振替先の業務ルールが未確定のため、金額がある状態では年度確定できません。財務集計対象に戻すか、業務ルール確定後に振替処理を実装してください。",
+          { rowId: row.id },
+        ),
+      );
+    }
     if (row.includeInFinancialTotals) {
       byproductEnding = roundMoney(byproductEnding + ending);
       byproductCogs = roundMoney(byproductCogs + cogs);

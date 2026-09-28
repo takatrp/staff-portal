@@ -83,7 +83,7 @@ const normalPackaging = { sake: 90, shochu: 55, liqueur: 28, spirits: 9, contrac
 export function createNormalDemoModel(now = new Date().toISOString()): SakeCostModel {
   const byproducts: ByproductRow[] = [
     { id: "sake-lees", label: "清酒粕", standard: true, creditCategory: "sake", producedQty: 100, valuationUnit: 500, openingAmount: 10_000, purchaseAmount: 5_000, internalIssueAmount: 0, closingQty: 20, closingUnit: 500, includeInFinancialTotals: true },
-    { id: "rice-koji", label: "米麹", standard: true, creditCategory: "sake", producedQty: 20, valuationUnit: 400, openingAmount: 0, purchaseAmount: 0, internalIssueAmount: 0, closingQty: 5, closingUnit: 400, includeInFinancialTotals: false },
+    { id: "rice-koji", label: "米麹", standard: true, creditCategory: "sake", producedQty: 0, valuationUnit: 400, openingAmount: 0, purchaseAmount: 0, internalIssueAmount: 0, closingQty: 0, closingUnit: 400, includeInFinancialTotals: false },
     { id: "rice-bran", label: "米糠類", standard: true, creditCategory: "shochu", producedQty: 15, valuationUnit: 200, openingAmount: 0, purchaseAmount: 0, internalIssueAmount: 0, closingQty: 5, closingUnit: 200, includeInFinancialTotals: true },
     { id: "plum", label: "梅", standard: true, creditCategory: "liqueur", producedQty: 5, valuationUnit: 1_000, openingAmount: 0, purchaseAmount: 0, internalIssueAmount: 0, closingQty: 1, closingUnit: 1_000, includeInFinancialTotals: true },
   ];
@@ -208,7 +208,12 @@ export function createErrorDemoModel(now = new Date().toISOString()): SakeCostMo
   model.productRollforwards.sake.finished.closingQty = 500;
   model.productRollforwards.sake.finished.closingAmount = 10_000_000;
   model.food.products[0].producedAmount = 599_900;
-  model.auditLog = [{ id: "error-demo", at: now, actor: "未設定", target: "全体", action: "エラー確認用データを登録", detail: "配賦・数量差異・負数・食品差額を含む架空データ" }];
+  const riceKoji = model.byproducts.find((row) => row.id === "rice-koji");
+  if (riceKoji) {
+    riceKoji.producedQty = 20;
+    riceKoji.closingQty = 5;
+  }
+  model.auditLog = [{ id: "error-demo", at: now, actor: "未設定", target: "全体", action: "エラー確認用データを登録", detail: "配賦・数量差異・負数・食品差額・財務集計対象外副産物を含む架空データ" }];
   return model;
 }
 

@@ -71,6 +71,28 @@ describe("JSON移行と確定入力ハッシュ", () => {
     expect(() => migrateModel(brokenSnapshot)).toThrow("確定スナップショット");
   });
 
+  it.each([
+    ["負の任意比率", (model: ReturnType<typeof createNormalDemoModel>) => { model.pools.manufacturingLabor[0].customWeights.sake = -1; }],
+    ["負の直課額", (model: ReturnType<typeof createNormalDemoModel>) => { model.pools.manufacturingLabor[0].direct.sake = -1; }],
+    ["負の製造数量", (model: ReturnType<typeof createNormalDemoModel>) => { model.allocationDrivers.manufacturing.sake = -1; }],
+    ["負の期末棚卸高", (model: ReturnType<typeof createNormalDemoModel>) => { model.materials.manufacturing[0].entries.sake.closing = -1; }],
+  ])("v3 JSONの%sを復元前に拒否する", (_, mutate) => {
+    const model = createNormalDemoModel();
+    mutate(model);
+    expect(() => migrateModel(model)).toThrow("0以上");
+  });
+
+  it("負の振替・調整と原酒振替は許可する", () => {
+    const model = createNormalDemoModel();
+    model.materials.manufacturing[0].entries.sake.transfer = -123;
+    model.productRollforwards.sake.raw.transferQty = -1.25;
+    model.productRollforwards.sake.raw.transferAmount = -500;
+    const migrated = migrateModel(model);
+    expect(migrated.materials.manufacturing[0].entries.sake.transfer).toBe(-123);
+    expect(migrated.productRollforwards.sake.raw.transferQty).toBe(-1.25);
+    expect(migrated.productRollforwards.sake.raw.transferAmount).toBe(-500);
+  });
+
   it("スナップショットから履歴を除外し、同じ入力は同じハッシュになる", () => {
     const model = createNormalDemoModel();
     const first = sanitizeForSnapshot(model);

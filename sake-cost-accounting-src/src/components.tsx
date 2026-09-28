@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
-import { formatMoney, formatQuantity, parseNumericText, roundMoney, roundQuantity } from "./logic/number";
+import { formatMoney, formatQuantity, normalizeNumericText, parseNumericText, roundMoney, roundQuantity } from "./logic/number";
 import type { ScreenId } from "./types";
 
 export type NumberInputProps = {
@@ -21,6 +21,27 @@ function plainFormat(value: number | null, kind: NonNullable<NumberInputProps["k
   return normalized.toLocaleString("ja-JP", { maximumFractionDigits: kind === "money" ? 0 : 3 });
 }
 
+function formatDraftText(value: string): string {
+  const normalized = value
+    .replace(/[０-９]/g, (char) => String.fromCharCode(char.charCodeAt(0) - 0xfee0))
+    .replace(/．/g, ".")
+    .replace(/－/g, "-")
+    .replace(/[，,\s]/g, "");
+  const match = normalized.match(/^(-?)(\d*)(\.?)(\d*)$/);
+  if (!match) return normalized;
+  const [, sign, integer, dot, fraction] = match;
+  const groupedInteger = integer ? Number(integer).toLocaleString("ja-JP", { maximumFractionDigits: 0 }) : (fraction ? "0" : "");
+  return `${sign}${groupedInteger}${dot}${fraction}`;
+}
+
+function draftError(text: string, kind: NonNullable<NumberInputProps["kind"]>, allowNegative: boolean, final: boolean): string {
+  const normalized = normalizeNumericText(text);
+  if (!allowNegative && normalized.startsWith("-")) return "0以上で入力してください。";
+  if (kind === "money" && normalized.includes(".")) return "金額は整数円で入力してください。";
+  if (!final && ["", ".", "-", "-."].includes(normalized)) return "";
+  return parseNumericText(text) === "invalid" ? "数値として入力してください。" : "";
+}
+
 export function NumberInput({
   value,
   onChange,
@@ -38,32 +59,48 @@ export function NumberInput({
   const [error, setError] = useState("");
   const startValue = useRef<number | null>(value);
   const focused = useRef(false);
+  const dirty = useRef(false);
+  const latestValue = useRef<number | null>(value);
 
   useEffect(() => {
-    if (!focused.current) setText(plainFormat(value, kind));
+    const changedExternally = latestValue.current !== value;
+    latestValue.current = value;
+    if (!focused.current || changedExternally) {
+      setText(plainFormat(value, kind));
+      setError("");
+      dirty.current = false;
+      startValue.current = value;
+    }
   }, [kind, value]);
 
   const change = (nextText: string) => {
-    const parsed = parseNumericText(nextText);
+    const formatted = formatDraftText(nextText);
+    dirty.current = true;
+    setText(formatted);
+    setError(draftError(formatted, kind, allowNegative, false));
+  };
+
+  const commitDraft = (): boolean => {
+    if (!dirty.current) return true;
+    const nextError = draftError(text, kind, allowNegative, true);
+    if (nextError) {
+      setError(nextError);
+      return false;
+    }
+    const parsed = parseNumericText(text);
     if (parsed === "invalid") {
-      setText(nextText);
       setError("数値として入力してください。");
-      return;
-    }
-    if (parsed !== null && !allowNegative && parsed < 0) {
-      setText(nextText);
-      setError("0以上で入力してください。");
-      return;
-    }
-    if (parsed !== null && kind === "money" && !Number.isInteger(parsed)) {
-      setText(nextText);
-      setError("金額は整数円で入力してください。");
-      return;
+      return false;
     }
     const normalized = parsed === null ? null : kind === "money" ? roundMoney(parsed) : roundQuantity(parsed);
     setError("");
     setText(plainFormat(normalized, kind));
+    dirty.current = false;
+    latestValue.current = normalized;
     onChange(normalized);
+    if (onCommit && startValue.current !== normalized) onCommit(startValue.current, normalized);
+    startValue.current = normalized;
+    return true;
   };
 
   return (
@@ -80,12 +117,17 @@ export function NumberInput({
           }}
           onBlur={() => {
             focused.current = false;
-            if (!error) {
-              setText(plainFormat(value, kind));
-              if (onCommit && startValue.current !== value) onCommit(startValue.current, value);
-            }
+            commitDraft();
           }}
-          onKeyDown={handleGridKeyDown}
+          onKeyDown={(event) => {
+            const gridTarget = getGridNavigationTarget(event);
+            const shouldCommit = event.key === "Enter" || Boolean(gridTarget);
+            if (shouldCommit && !commitDraft()) {
+              event.preventDefault();
+              return;
+            }
+            if (gridTarget) moveGridFocus(event, gridTarget);
+          }}
           disabled={disabled}
           aria-label={ariaLabel}
           aria-invalid={Boolean(error)}
@@ -126,13 +168,13 @@ export function TextCommitInput({ value, onChange, onCommit, disabled, ariaLabel
   );
 }
 
-function handleGridKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+function getGridNavigationTarget(event: KeyboardEvent<HTMLInputElement>): HTMLInputElement | null {
   const input = event.currentTarget;
   const table = input.closest("table");
-  if (!table) return;
+  if (!table) return null;
   const row = Number(input.dataset.gridRow);
   const col = Number(input.dataset.gridCol);
-  if (!Number.isFinite(row) || !Number.isFinite(col)) return;
+  if (!Number.isFinite(row) || !Number.isFinite(col)) return null;
   let nextRow = row;
   let nextCol = col;
   if (event.key === "Enter") nextRow += event.shiftKey ? -1 : 1;
@@ -140,13 +182,14 @@ function handleGridKeyDown(event: KeyboardEvent<HTMLInputElement>) {
   else if (event.key === "ArrowUp") nextRow -= 1;
   else if (event.key === "ArrowRight") nextCol += 1;
   else if (event.key === "ArrowLeft") nextCol -= 1;
-  else return;
-  const target = table.querySelector<HTMLInputElement>(`[data-grid-input="true"][data-grid-row="${nextRow}"][data-grid-col="${nextCol}"]:not(:disabled)`);
-  if (target) {
-    event.preventDefault();
-    target.focus();
-    target.select();
-  }
+  else return null;
+  return table.querySelector<HTMLInputElement>(`[data-grid-input="true"][data-grid-row="${nextRow}"][data-grid-col="${nextCol}"]:not(:disabled)`);
+}
+
+function moveGridFocus(event: KeyboardEvent<HTMLInputElement>, target: HTMLInputElement) {
+  event.preventDefault();
+  target.focus();
+  target.select();
 }
 
 export function Money({ value }: { value: number }) {

@@ -1,6 +1,7 @@
 import { useRef, useState, type ChangeEvent } from "react";
 import { createErrorDemoModel, createNormalDemoModel } from "../data/defaults";
 import { buildSummaryCsv } from "../logic/export";
+import { downloadText } from "../logic/download";
 import { parseAndMigrateJson } from "../logic/migration";
 import { previewCsv, type CsvPreview } from "../logic/csv";
 import { Money, PanelTitle } from "../components";
@@ -11,19 +12,7 @@ function safeFileName(value: string): string {
   return value.replace(/[\\/:*?"<>|]/g, "-").trim() || "sake-cost";
 }
 
-function downloadText(fileName: string, content: string, mime: string) {
-  const blob = new Blob([content], { type: mime });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = fileName;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  URL.revokeObjectURL(url);
-}
-
-export function DataScreen({ model, calc, locked, updateModel, openDialog, showToast }: CommonScreenProps) {
+export function DataScreen({ model, calc, locked, persistenceMode, updateModel, openDialog, showToast }: CommonScreenProps) {
   const [csvPreview, setCsvPreview] = useState<CsvPreview | null>(null);
   const csvInput = useRef<HTMLInputElement>(null);
   const jsonInput = useRef<HTMLInputElement>(null);
@@ -90,7 +79,7 @@ export function DataScreen({ model, calc, locked, updateModel, openDialog, showT
       </section>
 
       <section className="panel">
-        <PanelTitle eyebrow="BACKUP & EXPORT" title="バックアップ・出力" description="入力はこのブラウザに自動保存されます。端末故障やブラウザ初期化に備えてJSONも保存してください。" />
+        <PanelTitle eyebrow="BACKUP & EXPORT" title="バックアップ・出力" description={persistenceMode === "persistent" ? "入力はこのブラウザに自動保存されます。端末故障やブラウザ初期化に備えてJSONも保存してください。" : "このセッションはブラウザへ自動保存されません。作業内容はJSONで保存してください。"} />
         <div className="export-grid">
           <article><h3>JSONバックアップ</h3><p>全入力・設定・確認記録・確定スナップショットを保存します。</p><button className="primary-button" type="button" onClick={() => { downloadText(`${safeFileName(model.meta.periodLabel)}-backup-v3.json`, JSON.stringify(model, null, 2), "application/json;charset=utf-8"); showToast("JSONバックアップを保存しました。", "success"); }}>JSONを保存</button></article>
           <article><h3>JSONから復元</h3><p>v1/v2はv3へ自動移行します。確定済みの場合は先に確定解除が必要です。</p><input ref={jsonInput} type="file" accept=".json,application/json" onChange={restoreJson} disabled={locked} hidden /><button className="secondary-button" type="button" onClick={() => jsonInput.current?.click()} disabled={locked}>JSONを選択</button></article>
