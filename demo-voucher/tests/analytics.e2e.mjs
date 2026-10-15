@@ -26,7 +26,8 @@ export async function verifyVoucherAnalytics(browser) {
     await page.waitForFunction(() => !document.getElementById('downloadZip').disabled);
     const frame = page.frames().find(item => item.url() === canonical + 'analytics-frame.html');
     assert.ok(frame, 'Analytics uses a separate empty document');
-    await frame.waitForFunction(() => !!window.google_tag_manager, { timeout: 30_000 });
+    await frame.waitForFunction(() => !!window.google_tag_manager, undefined, { timeout: 30_000 });
+    await page.locator('details summary').click();
     await page.locator('#seed').fill('PRIVATE_INPUT_87654');
     await page.locator('#settingsForm button[type=submit]').click();
     await page.waitForFunction(() => !document.getElementById('downloadZip').disabled);
