@@ -104,7 +104,8 @@ try {
   }));
   assert.ok(dimensions.scrollWidth <= dimensions.innerWidth, "Mobile layout must not overflow horizontally");
 
-  const voucherPage = await page.context().newPage();
+  const voucherContext = await browser.newContext({ acceptDownloads: true });
+  const voucherPage = await voucherContext.newPage();
   voucherPage.on("pageerror", (error) => runtimeErrors.push(error.message));
   await voucherPage.goto(new URL("./demo-voucher/", portalUrl).href, { waitUntil: "domcontentloaded" });
   await voucherPage.waitForFunction(() => !document.getElementById("downloadZip").disabled);
@@ -124,7 +125,7 @@ try {
   assert.equal(zipBytes.readUInt32LE(0), 0x04034b50);
   assert.ok(zipBytes.includes(Buffer.from("01_投入用/")));
   assert.ok(zipBytes.includes(Buffer.from("02_照合用_投入禁止/")));
-  await voucherPage.close();
+  await voucherContext.close();
 
   assert.deepEqual(runtimeErrors, []);
   console.log("STAFF_PORTAL_E2E_OK");
