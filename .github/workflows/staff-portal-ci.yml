@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - "index.html"
+      - "demo-voucher/**"
       - ".gitignore"
       - "*.png"
       - "*.jpg"
@@ -14,6 +15,7 @@ on:
       - main
     paths:
       - "index.html"
+      - "demo-voucher/**"
       - ".gitignore"
       - "*.png"
       - "*.jpg"
@@ -48,6 +50,8 @@ jobs:
       - name: Build
         working-directory: sake-cost-accounting-src
         run: npm run build
+      - name: Run voucher generator tests
+        run: node --test demo-voucher/tests/*.test.cjs
       - name: Install Chromium
         working-directory: sake-cost-accounting-src
         run: npx playwright install --with-deps chromium

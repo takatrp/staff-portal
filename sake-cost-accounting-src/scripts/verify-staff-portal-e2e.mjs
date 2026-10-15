@@ -1,9 +1,10 @@
+import { verifyRandomPreview } from "../../demo-voucher/tests/random-preview.e2e.mjs";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import vm from "node:vm";
 import { chromium } from "@playwright/test";
 
-const portalUrl = "http://127.0.0.1:4173/";
+const portalUrl = process.env.STAFF_PORTAL_URL || "http://127.0.0.1:4173/";
 const htmlUrl = new URL("../../index.html", import.meta.url);
 const html = await readFile(htmlUrl, "utf8");
 const inlineScripts = html
@@ -20,7 +21,7 @@ const verifier = html.match(/const PASSWORD_VERIFIER='([^']+)'/)?.[1];
 assert.ok(verifier, "Password verifier must be present");
 assert.match(html, /<meta name="robots" content="noindex,nofollow,noarchive" \/>/);
 
-const browser = await chromium.launch({ headless: true });
+const browser = await chromium.launch({ headless: true, ...(process.env.STAFF_PORTAL_BROWSER_CHANNEL ? { channel: process.env.STAFF_PORTAL_BROWSER_CHANNEL } : {}) });
 const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
 const runtimeErrors = [];
 
@@ -125,6 +126,7 @@ try {
   assert.equal(zipBytes.readUInt32LE(0), 0x04034b50);
   assert.ok(zipBytes.includes(Buffer.from("01_投入用/")));
   assert.ok(zipBytes.includes(Buffer.from("02_照合用_投入禁止/")));
+  console.log("VOUCHER_RANDOM_PREVIEW_OK", JSON.stringify(await verifyRandomPreview(voucherPage)));
   await voucherContext.close();
 
   assert.deepEqual(runtimeErrors, []);
