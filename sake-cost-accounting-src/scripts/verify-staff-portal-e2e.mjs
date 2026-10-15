@@ -51,8 +51,8 @@ try {
   );
   await page.reload({ waitUntil: "domcontentloaded" });
   assert.equal(await page.locator("#portal-content").isVisible(), true);
-  assert.equal(await page.locator(".tool-item:visible").count(), 14);
-  assert.equal(await page.locator("#visible-count").innerText(), "14");
+  assert.equal(await page.locator(".tool-item:visible").count(), 15);
+  assert.equal(await page.locator("#visible-count").innerText(), "15");
   assert.equal(await page.locator("script[src*='googletagmanager.com']").count(), 1);
 
   const journalCard = page.locator('.tool-item[href="https://script.google.com/macros/s/AKfycbydJOF19Yr7rajctRI5pL0gIYzDoyk6HNbweEssnN4arlJdG4M64nD0iQ0EI9BZXyCZ/exec"]');
@@ -65,12 +65,21 @@ try {
   assert.equal(await archiveCard.getAttribute("data-category"), "other");
   assert.match(await archiveCard.innerText(), /月次決算体制の構築支援 実践勉強会アーカイブ/);
   await page.locator("#category-filter").selectOption("other");
-  assert.equal(await page.locator(".tool-item:visible").count(), 3);
-  assert.equal(await page.locator("#visible-count").innerText(), "3");
+  assert.equal(await page.locator(".tool-item:visible").count(), 4);
+  assert.equal(await page.locator("#visible-count").innerText(), "4");
+  await page.getByRole("button", { name: "リセット" }).click();
+
+  const voucherCard = page.locator('.tool-item[href="./demo-voucher/"]');
+  assert.equal(await voucherCard.count(), 1);
+  assert.equal(await voucherCard.getAttribute("data-category"), "other");
+  assert.equal(await voucherCard.getAttribute("data-role"), "staff");
+  await page.getByPlaceholder("ツール名・業務内容で検索").fill("証憑デモ工房");
+  assert.equal(await page.locator(".tool-item:visible").count(), 1);
+  assert.equal(await voucherCard.isVisible(), true);
   await page.getByRole("button", { name: "リセット" }).click();
 
   await page.getByPlaceholder("ツール名・業務内容で検索").fill("消費税");
-  assert.equal(await page.locator(".tool-item:visible").count(), 3);
+  assert.equal(await page.locator(".tool-item:visible").count(), 4);
   await page.getByPlaceholder("ツール名・業務内容で検索").fill("経過措置");
   assert.equal(await page.locator(".tool-item:visible").count(), 1);
   const invoiceCard = page.locator('.tool-item[href="https://takatrp.github.io/invoice-transition-impact/"]');
@@ -78,7 +87,7 @@ try {
   assert.equal(await invoiceCard.getAttribute("data-category"), "advice");
   assert.equal(await page.locator("#visible-count").innerText(), "1");
   await page.getByRole("button", { name: "リセット" }).click();
-  assert.equal(await page.locator(".tool-item:visible").count(), 14);
+  assert.equal(await page.locator(".tool-item:visible").count(), 15);
 
   await Promise.all([
     page.waitForNavigation({ waitUntil: "domcontentloaded" }),
@@ -94,6 +103,30 @@ try {
     scrollWidth: document.documentElement.scrollWidth,
   }));
   assert.ok(dimensions.scrollWidth <= dimensions.innerWidth, "Mobile layout must not overflow horizontally");
+
+  const voucherContext = await browser.newContext({ acceptDownloads: true });
+  const voucherPage = await voucherContext.newPage();
+  voucherPage.on("pageerror", (error) => runtimeErrors.push(error.message));
+  await voucherPage.goto(new URL("./demo-voucher/", portalUrl).href, { waitUntil: "domcontentloaded" });
+  await voucherPage.waitForFunction(() => !document.getElementById("downloadZip").disabled);
+  assert.match(await voucherPage.locator("#resultSummary").innerText(), /20件/);
+  assert.equal(await voucherPage.locator(".doc-row").count(), 20);
+  assert.equal(await voucherPage.locator('a[href="../"]').innerText(), "スタッフポータルへ");
+  const pdfWait = voucherPage.waitForEvent("download");
+  await voucherPage.locator("#downloadPdf").click();
+  const pdfDownload = await pdfWait;
+  const pdfBytes = await readFile(await pdfDownload.path());
+  assert.equal(pdfBytes.subarray(0, 5).toString(), "%PDF-");
+  assert.ok(pdfBytes.includes(Buffer.from("/FontFile2")));
+  const zipWait = voucherPage.waitForEvent("download");
+  await voucherPage.locator("#downloadZip").click();
+  const zipDownload = await zipWait;
+  const zipBytes = await readFile(await zipDownload.path());
+  assert.equal(zipBytes.readUInt32LE(0), 0x04034b50);
+  assert.ok(zipBytes.includes(Buffer.from("01_投入用/")));
+  assert.ok(zipBytes.includes(Buffer.from("02_照合用_投入禁止/")));
+  await voucherContext.close();
+
   assert.deepEqual(runtimeErrors, []);
   console.log("STAFF_PORTAL_E2E_OK");
 } finally {
