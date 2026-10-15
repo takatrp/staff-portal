@@ -59,7 +59,7 @@ export async function verifyRandomPreview(page){
  }
  const expected=previous;
  const previewBytes=Buffer.from(await page.evaluate(async()=>{
-  const url=document.getElementById("pdfPreview").src.split("#")[0];
+  const url=document.getElementById("pdfPreview").href;
   return Array.from(new Uint8Array(await window.__voucherQa.blobs.get(url).arrayBuffer()));
  }));
  const pdfWait=page.waitForEvent("download");await page.locator("#downloadPdf").click();

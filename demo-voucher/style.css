@@ -4,3 +4,7 @@
 .preview-title{height:auto;min-height:74px;flex-wrap:wrap}.preview-title>div:first-child{flex:1 1 180px;min-width:0}.preview-title p{line-height:1.6;overflow-wrap:anywhere}.preview-actions{display:flex;gap:7px;flex-wrap:wrap}.randomize{background:#edf4e6;border-color:#a9bea2;color:#214d3d;min-height:36px}.randomize:hover{background:#dfebd4}.preview-actions .secondary{min-height:36px}@media(max-width:760px){.preview-actions{width:100%}.preview-actions button{flex:1 1 120px;min-height:44px}.preview-title{gap:12px}}
 
 @media(max-width:760px){.preview-actions .secondary{min-height:44px}}
+
+[hidden]{display:none!important}.presets{flex-wrap:wrap}.presets button{flex:1 1 210px}.presets .section-label{align-self:center}.preview-surface{padding:20px;overflow:hidden}#pdfPreview{display:flex;align-items:center;justify-content:center;width:100%;height:100%;text-decoration:none}#documentImage{display:block;max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;box-shadow:0 3px 16px #243b3424;background:white}@media(max-width:760px){.presets{flex-wrap:nowrap}.presets button{flex:0 0 210px}.preview-surface{padding:12px}}
+
+.preview-surface.landscape{height:clamp(230px,38vw,540px)}

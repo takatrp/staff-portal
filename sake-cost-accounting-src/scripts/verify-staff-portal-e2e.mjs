@@ -1,3 +1,4 @@
+import { verifyHandwriting } from "../../demo-voucher/tests/handwriting.e2e.mjs";
 import { verifyRandomPreview } from "../../demo-voucher/tests/random-preview.e2e.mjs";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
@@ -127,6 +128,7 @@ try {
   assert.ok(zipBytes.includes(Buffer.from("01_投入用/")));
   assert.ok(zipBytes.includes(Buffer.from("02_照合用_投入禁止/")));
   console.log("VOUCHER_RANDOM_PREVIEW_OK", JSON.stringify(await verifyRandomPreview(voucherPage)));
+  console.log("VOUCHER_HANDWRITING_OK", JSON.stringify(await verifyHandwriting(voucherPage)));
   await voucherContext.close();
 
   assert.deepEqual(runtimeErrors, []);

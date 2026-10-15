@@ -1,18 +1,18 @@
-/* Vector PDF renderer. No network, canvas rasterization or system-font dependency. */
+/* Local PDF renderer: embedded fonts or an image-only page; no external requests. */
 (function(g){'use strict';
 const C=()=>g.VoucherCore,white=[1,1,1],ink=[.12,.16,.19],muted=[.40,.45,.48],light=[.93,.95,.95];
-let fontBytes;
+let fontBytes;const previewPages=new WeakMap(),previewImages=new WeakMap();
 function bytes(){if(!fontBytes){const s=atob(g.DEMO_FONT_BASE64);fontBytes=Uint8Array.from(s,c=>c.charCodeAt(0));}return fontBytes;}
 function rgb(a){return g.PDFLib.rgb(...a);}function color(hex){return hex.match(/[a-f0-9]{2}/gi).map(x=>parseInt(x,16)/255);}
 function fixedDate(d){return new Date(d+'T12:00:00Z');}
-async function document(title,date){const doc=await g.PDFLib.PDFDocument.create();doc.registerFontkit(g.fontkit);doc.setTitle(title+' / 全件架空・研修用');doc.setAuthor('Demo Voucher Studio');doc.setCreator('Demo Voucher Studio '+C().VERSION);doc.setProducer('pdf-lib / embedded Noto Sans JP');doc.setCreationDate(fixedDate(date));doc.setModificationDate(fixedDate(date));const font=await doc.embedFont(bytes(),{subset:true});return{doc,font};}
-function painter(page,font){const H=page.getHeight(),W=page.getWidth();
-function rect(x,y,w,h,fill=light,border=null){page.drawRectangle({x,y:H-y-h,width:w,height:h,color:rgb(fill),...(border?{borderColor:rgb(border),borderWidth:.6}:{})});}
-function line(x,y,x2,y2,c=muted,width=.6,dash){page.drawLine({start:{x,y:H-y},end:{x:x2,y:H-y2},color:rgb(c),thickness:width,...(dash?{dashArray:dash}:{})});}
-function text(value,x,y,size=10,c=ink,opts={}){let s=String(value);let fs=size;const width=opts.width||W-x-8;while(font.widthOfTextAtSize(s,fs)>width&&fs>5)fs-=.25;let w=font.widthOfTextAtSize(s,fs);if(w>width){while(s.length&&font.widthOfTextAtSize(s+'…',fs)>width)s=s.slice(0,-1);s+='…';w=font.widthOfTextAtSize(s,fs);}let px=opts.align==='right'?x+width-w:opts.align==='center'?x+(width-w)/2:x;page.drawText(s,{x:px,y:H-y-fs,font,size:fs,color:rgb(c)});return fs;}
+async function document(title,date){const doc=await g.PDFLib.PDFDocument.create();doc.registerFontkit(g.fontkit);doc.setTitle(title+' / 全件架空・研修用');doc.setAuthor('Demo Voucher Studio');doc.setCreator('Demo Voucher Studio '+C().VERSION);doc.setProducer('pdf-lib / embedded Noto Sans JP');doc.setCreationDate(fixedDate(date));doc.setModificationDate(fixedDate(date));const font=await doc.embedFont(bytes(),{subset:true});font._demoFamily='DemoNotoJP';return{doc,font};}
+function painter(page,font){const H=page.getHeight(),W=page.getWidth(),commands=page._demoPaint||(page._demoPaint=[]);
+function rect(x,y,w,h,fill=light,border=null){page.drawRectangle({x,y:H-y-h,width:w,height:h,color:rgb(fill),...(border?{borderColor:rgb(border),borderWidth:.6}:{})});commands.push({op:'rect',x,y,w,h,fill,border});}
+function line(x,y,x2,y2,c=muted,width=.6,dash){page.drawLine({start:{x,y:H-y},end:{x:x2,y:H-y2},color:rgb(c),thickness:width,...(dash?{dashArray:dash}:{})});commands.push({op:'line',x,y,x2,y2,color:c,width,dash});}
+function text(value,x,y,size=10,c=ink,opts={}){let s=String(value),fs=size;const width=opts.width||W-x-8;while(font.widthOfTextAtSize(s,fs)>width&&fs>5)fs-=.25;let w=font.widthOfTextAtSize(s,fs);if(w>width){while(s.length&&font.widthOfTextAtSize(s+'…',fs)>width)s=s.slice(0,-1);s+='…';w=font.widthOfTextAtSize(s,fs);}const px=opts.align==='right'?x+width-w:opts.align==='center'?x+(width-w)/2:x,rotation=opts.rotation||0;page.drawText(s,{x:px,y:H-y-fs,font,size:fs,color:rgb(c),...(rotation?{rotate:g.PDFLib.degrees(rotation)}:{})});commands.push({op:'text',text:s,x:px,baseline:y+fs,size:fs,color:c,family:font._demoFamily||'DemoNotoJP',rotation});return fs;}
 function center(s,y,size=10,c=ink,x=0,w=W){return text(s,x,y,size,c,{width:w,align:'center'});}
 function right(s,x,y,w,size=10,c=ink){return text(s,x,y,size,c,{width:w,align:'right'});}
-function circle(x,y,r,c){page.drawCircle({x,y:H-y,size:r,color:rgb(c)});}
+function circle(x,y,r,c){page.drawCircle({x,y:H-y,size:r,color:rgb(c)});commands.push({op:'circle',x,y,r,color:c});}
 return{page,font,H,W,rect,line,text,center,right,circle};}
 function logo(p,id,x,y,s,c){const k=id%10,t=s/5;switch(k){
 case 0:p.circle(x+s/2,y+s/2,s/2,c);p.line(x+t,y+s*.65,x+s/2,y+t,white,2);p.line(x+s/2,y+t,x+s-t,y+s*.65,white,2);break;
@@ -81,7 +81,11 @@ d.totals.groups.filter(t=>t.amount).forEach(t=>{p.text(t.rate+'%対象'+(d.prici
 p.text(d.payment,m,y+2,8);p.right(money(d.tender)+'円',m+90,y+2,inner-90,8);p.text('お釣り',m,y+19,8);p.right(money(d.change)+'円',m+90,y+19,inner-90,8);y+=43;rule(y);y+=13;p.center('* 軽減税率対象（持帰り食品）',y,7,muted);p.center(roundLabel(d.rounding)+' / 税率ごとに1回計算',y+15,7,muted);
 if(k===5){p.line(m,y+37,w-m,y+37,muted,.7,[3,2]);p.center('THANK YOU / DEMO ONLY',y+47,10,a);}else p.center('ありがとうございました',y+42,9,a);
 disclaimer(p,h-34,true);return page;}
-async function voucher(d){C().assertDoc(d);const {doc,font}=await document(d.id,d.date);(d.type==='invoice'?invoice:receipt)(d,font,doc);return doc.save({useObjectStreams:false});}
+async function voucher(d){C().assertDoc(d);const {doc,font}=await document(d.id,d.date);const page=d.receiptStyle==='handwritten'?await g.VoucherArtwork.handReceipt(d,doc,font,painter,logo):(d.type==='invoice'?invoice:receipt)(d,font,doc);
+ if(d.pdfMode==='image'){const png=await g.VoucherArtwork.raster(page),out=await g.PDFLib.PDFDocument.create();out.setTitle(d.id+' / DEMO IMAGE ONLY');out.setAuthor('Demo Voucher Studio');out.setCreator('Demo Voucher Studio '+C().VERSION);out.setCreationDate(fixedDate(d.date));out.setModificationDate(fixedDate(d.date));const image=await out.embedPng(png),imagePage=out.addPage([page.getWidth(),page.getHeight()]);imagePage.drawImage(image,{x:0,y:0,width:page.getWidth(),height:page.getHeight()});const saved=await out.save({useObjectStreams:false});previewImages.set(saved,png);return saved;}
+ const saved=await doc.save({useObjectStreams:false});previewPages.set(saved,page);return saved;
+}
+async function previewFor(bytes){if(!previewImages.has(bytes)){const page=previewPages.get(bytes);if(!page)throw Error('プレビュー対象のPDFが見つかりません。');previewImages.set(bytes,await g.VoucherArtwork.raster(page));}return previewImages.get(bytes);}
 async function summary(batch){const {doc,font}=await document('照合一覧・投入禁止',batch.config.startDate),per=18;for(let offset=0;offset<batch.documents.length;offset+=per){const p=painter(doc.addPage([841.89,595.28]),font),m=29;p.text('照合一覧 / 証憑投入禁止',m,22,21,[.12,.34,.30]);p.text('全件架空 | '+batch.summary.count+'件 | 総額 '+money(batch.summary.total)+'円 | seed: '+batch.config.seed,m,55,9);p.text('8%・10%欄は税抜金額 / 税額。対象金額の表示基準・詳細は照合CSVを参照。',m,73,8,muted);p.rect(m,95,784,25,[.12,.34,.30]);const xs=[m+6,106,178,347,419,532,645,740],ws=[70,65,163,65,107,107,88,67];const headers=['ID','取引日','発行者（架空）','金額方式','8% 税抜 / 税','10% 税抜 / 税','税込総額','検算'];headers.forEach((s,i)=>p.text(s,xs[i],102,8,white,{width:ws[i]}));
 batch.documents.slice(offset,offset+per).forEach((d,i)=>{const y=121+i*22;const [a,b]=d.totals.groups;if(i%2===0)p.rect(m,y,784,22,light);const vals=[d.id,d.date,d.merchant.name,d.pricing==='inclusive'?'税込内税':'税抜外税',money(a.net)+' / '+money(a.tax),money(b.net)+' / '+money(b.tax),money(d.totals.gross),'OK'];vals.forEach((s,j)=>p.text(s,xs[j],y+6,8,ink,{width:ws[j]}));});
 p.text('登録番号は全件 T0000000000000（無効なダミー）。実事業者照会は対象外。',m,545,8,muted);p.right((offset/per+1)+' / '+Math.ceil(batch.documents.length/per),735,545,77,9);p.text('Demo Voucher Studio '+C().VERSION+' | 税額：証憑単位・税率別1回 | 端数：'+roundLabel(batch.config.rounding),m,563,8,muted);}
@@ -91,5 +95,5 @@ function readme(batch){return '架空証憑デモセット / Demo Voucher Studio
 async function build(batch,onProgress=()=>{},options={}){const pdfs=[],entries=[];for(let i=0;i<batch.documents.length;i++){const d=batch.documents[i];pdfs.push(await voucher(d));entries.push({name:'01_投入用/'+d.filename,data:pdfs[i]});onProgress(i+1,batch.documents.length);await new Promise(r=>setTimeout(r,0));}
 if(!options.proofsOnly){entries.push({name:'02_照合用_投入禁止/期待値.csv',data:C().csv(batch)},{name:'02_照合用_投入禁止/照合一覧.pdf',data:await summary(batch)},{name:'02_照合用_投入禁止/生成条件.json',data:JSON.stringify({version:batch.version,...batch.config},null,2)},{name:'02_照合用_投入禁止/全明細.json',data:JSON.stringify(batch,null,2)},{name:'03_見本_投入禁止/全件見本.pdf',data:await booklet(pdfs)},{name:'最初にお読みください.txt',data:readme(batch)});}
 return{entries,pdfs,zip:C().zip(entries)};}
-g.VoucherPDF={voucher,summary,booklet,build,readme,logo};
+g.VoucherPDF={voucher,previewFor,summary,booklet,build,readme,logo};
 })(globalThis);
