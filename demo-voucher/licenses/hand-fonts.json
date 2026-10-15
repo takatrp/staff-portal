@@ -1,0 +1,18 @@
+[
+  {
+    "family": "klee",
+    "file": "KleeOne-Regular.ttf",
+    "source": "https://raw.githubusercontent.com/google/fonts/main/ofl/kleeone/KleeOne-Regular.ttf",
+    "license": "https://raw.githubusercontent.com/google/fonts/main/ofl/kleeone/OFL.txt",
+    "bytes": 8724204,
+    "sha256": "bf4063f030cc2ae6adf0a11424a1888e5c0eb4438f1f6d02f52294af868e9b3a"
+  },
+  {
+    "family": "yomogi",
+    "file": "Yomogi-Regular.ttf",
+    "source": "https://raw.githubusercontent.com/google/fonts/main/ofl/yomogi/Yomogi-Regular.ttf",
+    "license": "https://raw.githubusercontent.com/google/fonts/main/ofl/yomogi/OFL.txt",
+    "bytes": 4045904,
+    "sha256": "ec280f473a03187292905618f24fdb08a6dcbf8620b52637e3b589fe745259b9"
+  }
+]

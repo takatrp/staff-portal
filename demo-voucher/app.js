@@ -1,12 +1,13 @@
 (function () {
 'use strict';
 const C=VoucherCore,P=VoucherPDF,$=id=>document.getElementById(id);
-const fields=['invoiceCount','receiptCount','startDate','endDate','taxMix','pricing','rounding','seed'];
-const presets={standard:{invoiceCount:10,receiptCount:10,taxMix:'varied',pricing:'varied'},mixed:{invoiceCount:5,receiptCount:5,taxMix:'mixed',pricing:'varied'},receipts:{invoiceCount:0,receiptCount:10,taxMix:'varied',pricing:'inclusive'}};
+const fields=['invoiceCount','receiptCount','startDate','endDate','taxMix','pricing','rounding','receiptStyle','handwriting','pdfMode','seed'];
+const presets={handwritten:{invoiceCount:0,receiptCount:3,taxMix:'mixed',pricing:'inclusive',receiptStyle:'handwritten',handwriting:'auto',pdfMode:'text'},standard:{invoiceCount:10,receiptCount:10,taxMix:'varied',pricing:'varied',receiptStyle:'normal',pdfMode:'text'},mixed:{invoiceCount:5,receiptCount:5,taxMix:'mixed',pricing:'varied',receiptStyle:'normal',pdfMode:'text'},receipts:{invoiceCount:0,receiptCount:10,taxMix:'varied',pricing:'inclusive',receiptStyle:'normal',pdfMode:'text'}};
 let batch=null,selected=null,busy=false,previewUrl=null,previewTicket=0,generationTicket=0,randomNonce=0;
 const pdfCache=new Map();
 function read(){return Object.fromEntries(fields.map(k=>[k,$(k).value]));}
-function set(c){fields.forEach(k=>{if(c[k]!==undefined)$(k).value=c[k];});}
+function appearance(){$('handwritingField').hidden=$('receiptStyle').value!=='handwritten';}
+function set(c){fields.forEach(k=>{if(c[k]!==undefined)$(k).value=c[k];});appearance();}
 function error(e){$('error').hidden=false;$('error').textContent=e.message||String(e);console.error(e);}
 function state(value,message=''){
  busy=value;$('status').textContent=message;
@@ -46,14 +47,16 @@ async function pdf(d){
 }
 async function preview(d){
  const ticket=++previewTicket;
+ document.querySelector('.preview-surface').classList.toggle('landscape',d.receiptStyle==='handwritten');
  $('previewLoading').textContent='新しいPDFを準備しています…';$('previewLoading').hidden=false;
  $('previewTitle').textContent=d.id+' / '+d.templateName;
- $('previewMeta').textContent=d.merchant.name+' · '+(d.pricing==='inclusive'?'税込内税':'税抜外税')+' · 消費税 '+C.yen(d.totals.tax)+'円 · 検算OK';
+ $('previewMeta').textContent=d.merchant.name+' · '+(d.pricing==='inclusive'?'税込内税':'税抜外税')+' · 消費税 '+C.yen(d.totals.tax)+'円 · '+(d.pdfMode==='image'?'画像PDF・文字層なし':'文字ありPDF')+' · 検算OK';
  try{
-  const bytes=await pdf(d);if(ticket!==previewTicket)return;
+  const bytes=await pdf(d),png=await P.previewFor(bytes);if(ticket!==previewTicket)return;
   const nextUrl=URL.createObjectURL(new Blob([bytes],{type:'application/pdf'}));
   const previousUrl=previewUrl;previewUrl=nextUrl;
-  $('pdfPreview').src=nextUrl+'#view=Fit&toolbar=0&navpanes=0';
+  $('pdfPreview').href=nextUrl;
+  $('documentImage').src=png;$('documentImage').alt=d.merchant.name+' / '+C.yen(d.totals.gross)+'円 / '+d.templateName;
   $('previewLoading').hidden=true;
   if(previousUrl)URL.revokeObjectURL(previousUrl);
  }catch(e){if(ticket===previewTicket){$('previewLoading').textContent='PDFを作成できませんでした。';error(e);}}
@@ -131,6 +134,7 @@ $('importConfig').addEventListener('change',async e=>{
   set(C.config(config));await generate();
  }catch(e){error(e);}finally{e.target.value='';}
 });
+$('receiptStyle').addEventListener('change',appearance);
 $('settingsForm').addEventListener('input',()=>{if(batch&&!busy)$('status').textContent='条件を変更しました。「この条件で生成」で反映します。';});
 $('version').textContent=C.VERSION;generate();
 })();
