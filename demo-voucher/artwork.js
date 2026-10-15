@@ -17,7 +17,13 @@ function rng(seed){let n=2166136261;for(const c of seed){n=Math.imul(n^c.codePoi
 async function handReceipt(d,doc,base,painter,logo){const data=await loadHandData(),key=d.handwriting==='neat'?'klee':'yomogi',font=await doc.embedFont(decode(data[key]),{subset:true});font._demoFamily=families[key];const page=doc.addPage([595.28,365]),p=painter(page,base),pen=painter(page,font),rand=rng(d.seed+'|'+d.id+'|pen-v1');
  const colors=[[.34,.48,.38],[.31,.42,.54],[.60,.39,.34]],accent=colors[d.template],printed=[.28,.33,.32],blue=[.10,.17,.29],m=22,W=page.getWidth(),right=W-m;
  p.rect(0,0,W,365,[.998,.996,.982]);p.rect(m,18,W-2*m,300,[1,.999,.990],accent);p.rect(m+1,19,5,298,accent);p.line(m+10,65,right-10,65,accent,.8);p.text('領　収　書',m+205,27,24,accent);p.right('No. '+d.id,m+365,31,153,9,printed);
- function hand(value,x,y,size,width){const s=String(value);let fs=size;while(font.widthOfTextAtSize(s,fs)>width&&fs>6)fs-=.25;if(d.handwriting!=='uneven'){pen.text(s,x,y,fs,blue,{width,rotation:d.handwriting==='natural'?-.45:0});return;}
+ function hand(value,x,y,size,width){const s=String(value);let fs=size;while(font.widthOfTextAtSize(s,fs)>width&&fs>6)fs-=.25;if(d.handwriting==='scrawl'){
+  // Vary each glyph while retaining the exact source text and a safe field width.
+  const strokes=Array.from(s,ch=>({ch,scale:.84+rand()*.30,rotation:(rand()-.5)*18,lift:(rand()-.5)*.22,gap:.03+rand()*.12}));
+  const span=pt=>strokes.reduce((sum,t)=>sum+font.widthOfTextAtSize(t.ch,pt*t.scale)+pt*t.gap,pt*.36);
+  while(span(fs)>width&&fs>6)fs-=.25;
+  let at=x+fs*.18;for(const t of strokes){const pt=fs*t.scale;pen.text(t.ch,at,y+fs-pt+t.lift*fs,pt,blue,{width:Math.max(30,width-(at-x)+4),rotation:t.rotation});at+=font.widthOfTextAtSize(t.ch,pt)+fs*t.gap;}return;
+ }if(d.handwriting!=='uneven'){pen.text(s,x,y,fs,blue,{width,rotation:d.handwriting==='natural'?-.45:0});return;}
   const chars=Array.from(s),extra=.10;while(font.widthOfTextAtSize(s,fs)+chars.length*extra>width&&fs>6)fs-=.25;let at=x;for(const ch of chars){const dy=(rand()-.5)*1.4,rotation=(rand()-.5)*3.2;pen.text(ch,at,y+dy,fs,blue,{width:Math.max(30,width-(at-x)+4),rotation});at+=font.widthOfTextAtSize(ch,fs)+extra+(rand()-.5)*.18;}
  }
  const date=d.date.split('-').map(Number);hand(date[0]+' 年 '+date[1]+' 月 '+date[2]+' 日',370,76,13,175);
