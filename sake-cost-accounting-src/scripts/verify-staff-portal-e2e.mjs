@@ -1,5 +1,6 @@
 import { verifyHandwriting } from "../../demo-voucher/tests/handwriting.e2e.mjs";
 import { verifyRandomPreview } from "../../demo-voucher/tests/random-preview.e2e.mjs";
+import { verifyVoucherAnalytics } from "../../demo-voucher/tests/analytics.e2e.mjs";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import vm from "node:vm";
@@ -130,6 +131,8 @@ try {
   console.log("VOUCHER_RANDOM_PREVIEW_OK", JSON.stringify(await verifyRandomPreview(voucherPage)));
   console.log("VOUCHER_HANDWRITING_OK", JSON.stringify(await verifyHandwriting(voucherPage)));
   await voucherContext.close();
+
+  console.log("VOUCHER_ANALYTICS_OK", JSON.stringify(await verifyVoucherAnalytics(browser)));
 
   assert.deepEqual(runtimeErrors, []);
   console.log("STAFF_PORTAL_E2E_OK");
