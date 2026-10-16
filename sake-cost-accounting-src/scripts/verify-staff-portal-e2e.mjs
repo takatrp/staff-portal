@@ -1,4 +1,5 @@
-import { verifyHandwriting } from "../../demo-voucher/tests/handwriting.e2e.mjs";
+import { verifyHandwriting, inspect, storedZip } from "../../demo-voucher/tests/handwriting.e2e.mjs";
+import { verifyVoucherDefaults } from "../../demo-voucher/tests/defaults.e2e.mjs";
 import { verifyRandomPreview } from "../../demo-voucher/tests/random-preview.e2e.mjs";
 import { verifyVoucherAnalytics } from "../../demo-voucher/tests/analytics.e2e.mjs";
 import assert from "node:assert/strict";
@@ -120,7 +121,7 @@ try {
   const pdfDownload = await pdfWait;
   const pdfBytes = await readFile(await pdfDownload.path());
   assert.equal(pdfBytes.subarray(0, 5).toString(), "%PDF-");
-  assert.ok(pdfBytes.includes(Buffer.from("/FontFile2")));
+  await inspect(pdfBytes, true);
   const zipWait = voucherPage.waitForEvent("download");
   await voucherPage.locator("#downloadZip").click();
   const zipDownload = await zipWait;
@@ -128,10 +129,14 @@ try {
   assert.equal(zipBytes.readUInt32LE(0), 0x04034b50);
   assert.ok(zipBytes.includes(Buffer.from("01_投入用/")));
   assert.ok(zipBytes.includes(Buffer.from("02_照合用_投入禁止/")));
+  const proofs = [...storedZip(zipBytes)].filter(([name]) => name.startsWith("01_投入用/"));
+  assert.equal(proofs.length, 20);
+  for (const [, bytes] of proofs) await inspect(bytes, true);
   console.log("VOUCHER_RANDOM_PREVIEW_OK", JSON.stringify(await verifyRandomPreview(voucherPage)));
   console.log("VOUCHER_HANDWRITING_OK", JSON.stringify(await verifyHandwriting(voucherPage)));
   await voucherContext.close();
 
+  console.log("VOUCHER_DEFAULTS_OK", JSON.stringify(await verifyVoucherDefaults(browser, new URL("./demo-voucher/", portalUrl).href)));
   console.log("VOUCHER_ANALYTICS_OK", JSON.stringify(await verifyVoucherAnalytics(browser)));
 
   assert.deepEqual(runtimeErrors, []);

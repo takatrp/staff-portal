@@ -12,7 +12,15 @@ const yen=n=>new Intl.NumberFormat('ja-JP').format(n);
 function seedNumber(s){let h=2166136261;for(const c of s){h^=c.codePointAt(0);h=Math.imul(h,16777619);}return h>>>0;}
 function random(seed){let n=seedNumber(seed);return()=>{n+=0x6D2B79F5;let t=n;t=Math.imul(t^(t>>>15),t|1);t^=t+Math.imul(t^(t>>>7),t|61);return((t^(t>>>14))>>>0)/4294967296;};}
 function day(s){if(typeof s!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(s))throw Error('日付を入力してください。');const d=new Date(s+'T00:00:00Z');if(!Number.isFinite(+d)||d.toISOString().slice(0,10)!==s)throw Error('日付が正しくありません。');if(s<'2000-01-01'||s>'2099-12-31')throw Error('日付は2000年〜2099年で指定してください。');return +d;}
-function config(input={}){const c=Object.assign({invoiceCount:10,receiptCount:10,startDate:'2026-09-01',endDate:'2026-09-30',taxMix:'varied',pricing:'varied',rounding:'floor',receiptStyle:'normal',handwriting:'auto',pdfMode:'text',seed:'matsumoto-demo-01'},input);
+function defaultDateRange(now=new Date()){
+ const year=now.getFullYear(),month=now.getMonth(),date=now.getDate();
+ // Use local calendar dates, clamping to the last day of the previous month.
+ const start=new Date(year,month-1,1,12);
+ start.setDate(Math.min(date,new Date(year,month,0,12).getDate()));
+ const format=d=>[d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');
+ return{startDate:format(start),endDate:format(now)};
+}
+function config(input={}){const c=Object.assign({invoiceCount:10,receiptCount:10,...defaultDateRange(),taxMix:'varied',pricing:'varied',rounding:'floor',receiptStyle:'normal',handwriting:'auto',pdfMode:'image',seed:'matsumoto-demo-01'},input);
 for(const k of ['invoiceCount','receiptCount']){c[k]=Number(c[k]);if(!Number.isInteger(c[k])||c[k]<0||c[k]>50)throw Error('各件数は0〜50件で指定してください。');}if(c.invoiceCount+c.receiptCount===0)throw Error('1件以上指定してください。');
 if(day(c.endDate)<day(c.startDate))throw Error('終了日は開始日以降を指定してください。');
 if(!['varied','10','8','mixed'].includes(c.taxMix))throw Error('税率構成が正しくありません。');
@@ -40,5 +48,5 @@ function zip(entries){const chunks=[],central=[];let pos=0;const block=(size,fil
 const local=block(30,v=>{v.setUint32(0,0x04034b50,true);v.setUint16(4,20,true);v.setUint16(6,0x800,true);v.setUint16(12,33,true);v.setUint32(14,crc,true);v.setUint32(18,data.length,true);v.setUint32(22,data.length,true);v.setUint16(26,name.length,true);});chunks.push(local,name,data);
 central.push(block(46,v=>{v.setUint32(0,0x02014b50,true);v.setUint16(4,20,true);v.setUint16(6,20,true);v.setUint16(8,0x800,true);v.setUint16(14,33,true);v.setUint32(16,crc,true);v.setUint32(20,data.length,true);v.setUint32(24,data.length,true);v.setUint16(28,name.length,true);v.setUint32(42,pos,true);}),name);pos+=30+name.length+data.length;}
 const len=central.reduce((s,a)=>s+a.length,0);chunks.push(...central,block(22,v=>{v.setUint32(0,0x06054b50,true);v.setUint16(8,entries.length,true);v.setUint16(10,entries.length,true);v.setUint32(12,len,true);v.setUint32(16,pos,true);}));const out=new Uint8Array(chunks.reduce((s,a)=>s+a.length,0));let at=0;for(const a of chunks){out.set(a,at);at+=a.length;}return out;}
-const api={VERSION,DUMMY,templates,receiptTemplates,brands,config,generate,totals,divide,assertDoc,csv,zip,crc32,yen};if(typeof module!=='undefined')module.exports=api;g.VoucherCore=api;
+const api={VERSION,DUMMY,templates,receiptTemplates,brands,defaultDateRange,config,generate,totals,divide,assertDoc,csv,zip,crc32,yen};if(typeof module!=='undefined')module.exports=api;g.VoucherCore=api;
 })(globalThis);
