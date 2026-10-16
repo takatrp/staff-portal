@@ -82,4 +82,18 @@ describe("配賦計算", () => {
     over.direct.sake = 101;
     expect(calculateAllocationRow(model, over, "manufacturing-allocation").checks.some((item) => item.id.endsWith(":direct-over-total"))).toBe(true);
   });
+
+  it.each([
+    ["negative-driver", "manufacturing-volume", (model: ReturnType<typeof createNormalDemoModel>, target: AllocationRow) => { model.allocationDrivers.manufacturing.sake = -1; target.direct.sake = 0; }],
+    ["negative-direct", "custom", (_model: ReturnType<typeof createNormalDemoModel>, target: AllocationRow) => { target.customWeights.sake = 1; target.direct.sake = -1; }],
+    ["negative-manual", "manual", (_model: ReturnType<typeof createNormalDemoModel>, target: AllocationRow) => { target.manual.sake = -1; }],
+    ["negative-custom-weight", "custom", (_model: ReturnType<typeof createNormalDemoModel>, target: AllocationRow) => { target.customWeights.sake = -1; }],
+  ] as const)("%sを安定IDで検出し、無効値を配賦しない", (suffix, method, mutate) => {
+    const model = onlyEligible(["sake"]);
+    const target = row(method);
+    mutate(model, target);
+    const result = calculateAllocationRow(model, target, "manufacturing-allocation");
+    expect(result.checks.map((item) => item.id)).toContain(`allocation:${target.id}:${suffix}`);
+    expect(Object.values(result.allocations).every((value) => value === 0)).toBe(true);
+  });
 });
