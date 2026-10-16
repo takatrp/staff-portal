@@ -2,7 +2,7 @@
 'use strict';
 const C=VoucherCore,P=VoucherPDF,$=id=>document.getElementById(id);
 const fields=['invoiceCount','receiptCount','startDate','endDate','taxMix','pricing','rounding','receiptStyle','handwriting','pdfMode','seed'];
-const presets={handwritten:{invoiceCount:0,receiptCount:3,taxMix:'mixed',pricing:'inclusive',receiptStyle:'handwritten',handwriting:'auto',pdfMode:'text'},standard:{invoiceCount:10,receiptCount:10,taxMix:'varied',pricing:'varied',receiptStyle:'normal',pdfMode:'text'},mixed:{invoiceCount:5,receiptCount:5,taxMix:'mixed',pricing:'varied',receiptStyle:'normal',pdfMode:'text'},receipts:{invoiceCount:0,receiptCount:10,taxMix:'varied',pricing:'inclusive',receiptStyle:'normal',pdfMode:'text'}};
+const presets={handwritten:{invoiceCount:0,receiptCount:3,taxMix:'mixed',pricing:'inclusive',receiptStyle:'handwritten',handwriting:'auto',pdfMode:'image'},standard:{invoiceCount:10,receiptCount:10,taxMix:'varied',pricing:'varied',receiptStyle:'normal',pdfMode:'image'},mixed:{invoiceCount:5,receiptCount:5,taxMix:'mixed',pricing:'varied',receiptStyle:'normal',pdfMode:'image'},receipts:{invoiceCount:0,receiptCount:10,taxMix:'varied',pricing:'inclusive',receiptStyle:'normal',pdfMode:'image'}};
 let batch=null,selected=null,busy=false,previewUrl=null,previewTicket=0,generationTicket=0,randomNonce=0;
 const pdfCache=new Map();
 function read(){return Object.fromEntries(fields.map(k=>[k,$(k).value]));}
@@ -136,5 +136,7 @@ $('importConfig').addEventListener('change',async e=>{
 });
 $('receiptStyle').addEventListener('change',appearance);
 $('settingsForm').addEventListener('input',()=>{if(batch&&!busy)$('status').textContent='条件を変更しました。「この条件で生成」で反映します。';});
+const initialDates=C.defaultDateRange();
+for(const key of ['startDate','endDate'])if(!$(key).value)$(key).value=initialDates[key];
 $('version').textContent=C.VERSION;generate();
 })();
