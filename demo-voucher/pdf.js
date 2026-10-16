@@ -82,7 +82,13 @@ p.text(d.payment,m,y+2,8);p.right(money(d.tender)+'円',m+90,y+2,inner-90,8);p.t
 if(k===5){p.line(m,y+37,w-m,y+37,muted,.7,[3,2]);p.center('THANK YOU / DEMO ONLY',y+47,10,a);}else p.center('ありがとうございました',y+42,9,a);
 disclaimer(p,h-34,true);return page;}
 async function voucher(d){C().assertDoc(d);const {doc,font}=await document(d.id,d.date);const page=d.receiptStyle==='handwritten'?await g.VoucherArtwork.handReceipt(d,doc,font,painter,logo):(d.type==='invoice'?invoice:receipt)(d,font,doc);
- if(d.pdfMode==='image'){const png=await g.VoucherArtwork.raster(page),out=await g.PDFLib.PDFDocument.create();out.setTitle(d.id+' / DEMO IMAGE ONLY');out.setAuthor('Demo Voucher Studio');out.setCreator('Demo Voucher Studio '+C().VERSION);out.setCreationDate(fixedDate(d.date));out.setModificationDate(fixedDate(d.date));const image=await out.embedPng(png),imagePage=out.addPage([page.getWidth(),page.getHeight()]);imagePage.drawImage(image,{x:0,y:0,width:page.getWidth(),height:page.getHeight()});const saved=await out.save({useObjectStreams:false});previewImages.set(saved,png);return saved;}
+ if(d.pdfMode==='image'){const png=await g.VoucherArtwork.raster(page),out=await g.PDFLib.PDFDocument.create();
+  // A single opaque RGB image, lossless Flate compression and classic xref tables.
+  out.setTitle(d.id+' / DEMO IMAGE ONLY');out.setAuthor('Demo Voucher Studio');out.setCreator('Demo Voucher Studio '+C().VERSION);out.setCreationDate(fixedDate(d.date));out.setModificationDate(fixedDate(d.date));const image=await out.embedPng(png),imagePage=out.addPage([page.getWidth(),page.getHeight()]);imagePage.drawImage(image,{x:0,y:0,width:page.getWidth(),height:page.getHeight()});const saved=await out.save({useObjectStreams:false});
+  // pdf-lib always declares 1.7. This opaque RGB/Flate subset uses only 1.4 features.
+  // The same-length header leaves every classic-xref offset unchanged.
+  saved.set(new TextEncoder().encode('%PDF-1.4'),0);
+  previewImages.set(saved,png);return saved;}
  const saved=await doc.save({useObjectStreams:false});previewPages.set(saved,page);return saved;
 }
 async function previewFor(bytes){if(!previewImages.has(bytes)){const page=previewPages.get(bytes);if(!page)throw Error('プレビュー対象のPDFが見つかりません。');previewImages.set(bytes,await g.VoucherArtwork.raster(page));}return previewImages.get(bytes);}

@@ -1,5 +1,6 @@
 import { verifyHandwriting, inspect, storedZip } from "../../demo-voucher/tests/handwriting.e2e.mjs";
 import { verifyVoucherDefaults } from "../../demo-voucher/tests/defaults.e2e.mjs";
+import { verifyImageProfile } from "../../demo-voucher/tests/image-profile.e2e.mjs";
 import { verifyRandomPreview } from "../../demo-voucher/tests/random-preview.e2e.mjs";
 import { verifyVoucherAnalytics } from "../../demo-voucher/tests/analytics.e2e.mjs";
 import assert from "node:assert/strict";
@@ -134,6 +135,7 @@ try {
   for (const [, bytes] of proofs) await inspect(bytes, true);
   console.log("VOUCHER_RANDOM_PREVIEW_OK", JSON.stringify(await verifyRandomPreview(voucherPage)));
   console.log("VOUCHER_HANDWRITING_OK", JSON.stringify(await verifyHandwriting(voucherPage)));
+  console.log("VOUCHER_IMAGE_PROFILE_OK", JSON.stringify(await verifyImageProfile(voucherPage)));
   await voucherContext.close();
 
   console.log("VOUCHER_DEFAULTS_OK", JSON.stringify(await verifyVoucherDefaults(browser, new URL("./demo-voucher/", portalUrl).href)));

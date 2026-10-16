@@ -1,12 +1,13 @@
 /* Receipt artwork and local rasterizer. Fonts remain on this device. */
 (function(g){'use strict';
 const families={base:'DemoNotoJP',klee:'DemoHandKlee',yomogi:'DemoHandYomogi'},faces=new Map();let handData;
+const IMAGE_DPI=300;
 function decode(s){return Uint8Array.from(atob(s),c=>c.charCodeAt(0));}
 async function loadHandData(){if(g.DEMO_HAND_FONTS)return g.DEMO_HAND_FONTS;if(!handData)handData=new Promise((resolve,reject)=>{const script=g.document.createElement('script');script.src='assets/hand-font-data.js?v=1.2.0';script.onload=()=>g.DEMO_HAND_FONTS?resolve(g.DEMO_HAND_FONTS):reject(Error('手書きフォントを読み込めませんでした。'));script.onerror=()=>reject(Error('手書きフォントを読み込めませんでした。'));g.document.head.append(script);});return handData;}
 async function fontFace(family){if(!faces.has(family))faces.set(family,(async()=>{let data;if(family===families.base)data=g.DEMO_FONT_BASE64;else{const fonts=await loadHandData();data=family===families.klee?fonts.klee:fonts.yomogi;}const face=new FontFace(family,decode(data));await face.load();g.document.fonts.add(face);return face;})());return faces.get(family);}
 function css(c){return 'rgb('+c.map(v=>Math.round(v*255)).join(',')+')';}
 async function raster(page){if(!g.document||!g.FontFace)throw Error('画像PDFはブラウザで生成してください。');const commands=page._demoPaint||[];await Promise.all([...new Set(commands.filter(c=>c.op==='text').map(c=>c.family))].map(fontFace));
- const scale=200/72,canvas=g.document.createElement('canvas');canvas.width=Math.ceil(page.getWidth()*scale);canvas.height=Math.ceil(page.getHeight()*scale);const ctx=canvas.getContext('2d',{alpha:false});if(!ctx)throw Error('画像PDFの作成に対応していないブラウザです。');ctx.fillStyle='white';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.scale(scale,scale);ctx.fontKerning='none';ctx.textBaseline='alphabetic';
+ const scale=IMAGE_DPI/72,canvas=g.document.createElement('canvas');canvas.width=Math.ceil(page.getWidth()*scale);canvas.height=Math.ceil(page.getHeight()*scale);const ctx=canvas.getContext('2d',{alpha:false,colorSpace:'srgb'});if(!ctx)throw Error('画像PDFの作成に対応していないブラウザです。');ctx.fillStyle='white';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.scale(scale,scale);ctx.fontKerning='none';ctx.textBaseline='alphabetic';
  for(const c of commands){ctx.save();if(c.op==='rect'){ctx.fillStyle=css(c.fill);ctx.fillRect(c.x,c.y,c.w,c.h);if(c.border){ctx.strokeStyle=css(c.border);ctx.lineWidth=.6;ctx.strokeRect(c.x,c.y,c.w,c.h);}}
  else if(c.op==='line'){ctx.beginPath();ctx.strokeStyle=css(c.color);ctx.lineWidth=c.width;ctx.setLineDash(c.dash||[]);ctx.moveTo(c.x,c.y);ctx.lineTo(c.x2,c.y2);ctx.stroke();}
  else if(c.op==='circle'){ctx.fillStyle=css(c.color);ctx.beginPath();ctx.arc(c.x,c.y,c.r,0,Math.PI*2);ctx.fill();}
@@ -34,5 +35,5 @@ async function handReceipt(d,doc,base,painter,logo){const data=await loadHandDat
  logo(p,d.merchant.logo,373,250,18,accent);p.text(d.merchant.name,401,250,11,printed,{width:145});p.text(d.merchant.address,373,273,7,printed,{width:174});p.text('登録番号 '+g.VoucherCore.DUMMY+'（ダミー）',373,288,7,printed,{width:174});
  p.text('軽減8%は持ち帰り食品。税率別に証憑1枚につき1回の端数処理。',m+17,301,6.5,printed,{width:490});p.center('全件架空・デモ専用 / 実在の企業・店舗・署名・印影は使用していません。',330,7,printed);p.center('登録番号は無効なダミーです。実事業者照会は対象外。',342,7,printed);return page;
 }
-g.VoucherArtwork={raster,handReceipt,families};
+g.VoucherArtwork={raster,handReceipt,families,IMAGE_DPI};
 })(globalThis);
