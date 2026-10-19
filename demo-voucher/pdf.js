@@ -6,8 +6,8 @@ function bytes(){if(!fontBytes){const s=atob(g.DEMO_FONT_BASE64);fontBytes=Uint8
 function rgb(a){return g.PDFLib.rgb(...a);}function color(hex){return hex.match(/[a-f0-9]{2}/gi).map(x=>parseInt(x,16)/255);}
 function fixedDate(d){return new Date(d+'T12:00:00Z');}
 // Physical page sizes in PDF points (72 pt = 25.4 mm).
-// All normal templates use the common 80 mm roll; their length follows the items.
-function pageSize(d){return d.type==='invoice'?{width:595.28,height:841.89}:d.receiptStyle==='handwritten'?{width:595.28,height:365}:{width:80*72/25.4,height:490+d.items.length*35+(d.template===9?60:0)};}
+// Normal templates use a 58 mm roll; body type sizes and item-dependent lengths stay fixed.
+function pageSize(d){return d.type==='invoice'?{width:595.28,height:841.89}:d.receiptStyle==='handwritten'?{width:595.28,height:365}:{width:58*72/25.4,height:490+d.items.length*35+(d.template===9?60:0)};}
 async function document(title,date){const doc=await g.PDFLib.PDFDocument.create();doc.registerFontkit(g.fontkit);doc.setTitle(title+' / 全件架空・研修用');doc.setAuthor('Demo Voucher Studio');doc.setCreator('Demo Voucher Studio '+C().VERSION);doc.setProducer('pdf-lib / embedded Noto Sans JP');doc.setCreationDate(fixedDate(date));doc.setModificationDate(fixedDate(date));const font=await doc.embedFont(bytes(),{subset:true});font._demoFamily='DemoNotoJP';return{doc,font};}
 function painter(page,font){const H=page.getHeight(),W=page.getWidth(),commands=page._demoPaint||(page._demoPaint=[]);
 function rect(x,y,w,h,fill=light,border=null){page.drawRectangle({x,y:H-y-h,width:w,height:h,color:rgb(fill),...(border?{borderColor:rgb(border),borderWidth:.6}:{})});commands.push({op:'rect',x,y,w,h,fill,border});}
@@ -68,7 +68,7 @@ let sy=ty+33;p.right('税抜合計  '+money(d.totals.net)+' 円',350,sy,194,10);
 p.line(m,730,p.W-m,730,light);p.text(d.merchant.name,m,744,10,a);p.text(d.merchant.address,m,761,8,muted);p.text('登録番号 '+C().DUMMY+'（無効なダミー）',m,776,8,muted);
 p.right('振込先：デモ用のため記載省略',333,748,220,8,muted);p.right('様式：'+d.templateName,333,765,220,8,muted);
 disclaimer(p,803);return page;}
-function receipt(d,font,doc){const k=d.template,{width:w,height:h}=pageSize(d);const page=doc.addPage([w,h]),p=painter(page,font),m=16,inner=w-32,a=k===8?ink:color(d.merchant.color);
+function receipt(d,font,doc){const k=d.template,{width:w,height:h}=pageSize(d);const page=doc.addPage([w,h]),p=painter(page,font),m=10,inner=w-2*m,a=k===8?ink:color(d.merchant.color);
 if(k===3||k===7){p.rect(m,15,inner,88,light);logo(p,d.merchant.logo,w/2-15,22,30,a);p.center(d.merchant.name,61,12,a,m+4,inner-8);}
 else if(k===1||k===6){logo(p,d.merchant.logo,w/2-18,18,36,a);p.center(d.merchant.latin,62,13,a);p.center(d.merchant.name,85,11);}
 else{logo(p,d.merchant.logo,m,21,27,a);p.text(d.merchant.latin,m+38,20,12,a,{width:inner-39});p.text('領収書 / レシート',m+38,40,10);p.center(d.merchant.name,77,12,a);}
