@@ -1,11 +1,11 @@
 const {test}=require('node:test'),assert=require('node:assert/strict'),C=require('../core.js'),Print=require('../print.js');
-test('A4面付けは80mm原寸・余白10mm・間隔5mmを守り次ページへ送る',()=>{
- const input=Array.from({length:5},(_,i)=>({id:'R'+i,width:80,height:250})),pages=Print.layout(input);
- assert.equal(pages.length,3);assert.deepEqual(pages.map(p=>p.items.length),[2,2,1]);
- for(const p of pages)for(const item of p.items){assert.equal(item.width,80);assert.equal(item.height,250);assert.ok(item.x>=10&&item.y>=10);assert.ok(item.x+item.width<=200&&item.y+item.height<=287);}
- assert.deepEqual(pages[0].items.map(i=>i.x),[10,95]);
- const rows=Print.layout(Array.from({length:6},(_,i)=>({id:'R'+i,width:80,height:70})));
- assert.equal(rows.length,1);assert.deepEqual(rows[0].items.map(i=>i.y),[10,10,85,85,160,160]);
+test('A4面付けは58mm原寸・余白10mm・間隔5mmを守り3列で次ページへ送る',()=>{
+ const input=Array.from({length:5},(_,i)=>({id:'R'+i,width:58,height:250})),pages=Print.layout(input);
+ assert.equal(pages.length,2);assert.deepEqual(pages.map(p=>p.items.length),[3,2]);
+ for(const p of pages)for(const item of p.items){assert.equal(item.width,58);assert.equal(item.height,250);assert.ok(item.x>=10&&item.y>=10);assert.ok(item.x+item.width<=200&&item.y+item.height<=287);}
+ assert.deepEqual(pages[0].items.map(i=>i.x),[10,73,136]);
+ const rows=Print.layout(Array.from({length:6},(_,i)=>({id:'R'+i,width:58,height:70})));
+ assert.equal(rows.length,1);assert.deepEqual(rows[0].items.map(i=>i.y),[10,10,10,85,85,85]);
 });
 test('長過ぎる証憑は縮小・切断せず拒否し、手書き用紙はA4横に原寸配置',()=>{
  assert.throws(()=>Print.layout([{id:'long',width:80,height:280}]),/long.*縮小・切断/);
