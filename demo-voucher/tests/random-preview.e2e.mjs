@@ -1,3 +1,4 @@
+import { verifyPrintLayout } from './print-layout.e2e.mjs';
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
@@ -33,6 +34,7 @@ export async function verifyRandomPreview(page){
  let previous=await page.evaluate(()=>window.__voucherQa.current);
  const variants=[];
  for(let i=0;i<4;i++){
+  const mode=['both','company','amount','both'][i];await page.locator('#randomMode').selectOption(mode);
   const calls=await page.evaluate(()=>window.__voucherQa.calls);
   await page.getByRole("button",{name:"ランダム生成",exact:true}).click();
   assert.equal(await page.locator("#regenerate").isDisabled(),true);
@@ -48,8 +50,9 @@ export async function verifyRandomPreview(page){
   assert.equal(current.id,"REC-003");assert.equal(current.type,"receipt");
   assert.equal(current.taxMode,"8");assert.ok(current.items.every(item=>item.rate===8));
   assert.equal(current.pricing,"inclusive");assert.equal(current.rounding,"ceil");assert.equal(current.date,"2026-10-01");
-  assert.notEqual(current.merchant.name,previous.merchant.name);assert.notEqual(current.template,previous.template);
-  assert.notDeepEqual(current.items,previous.items);
+  if(mode==='amount')assert.deepEqual(current.merchant,previous.merchant);else assert.notEqual(current.merchant.name,previous.merchant.name);assert.equal(current.template,previous.template);
+  if(mode==='company')assert.deepEqual(current.items,previous.items);else assert.notEqual(current.totals.gross,previous.totals.gross);
+  assert.deepEqual(current.items.map(({unitPrice,amount,...rest})=>rest),previous.items.map(({unitPrice,amount,...rest})=>rest));
   assert.equal(await page.locator("#filter").inputValue(),"receipt");
   assert.equal(await page.locator("#invoiceCount").inputValue(),"2");assert.equal(await page.locator("#receiptCount").inputValue(),"3");
   assert.match(await page.locator("#previewMeta").innerText(),new RegExp(current.merchant.name));
@@ -88,9 +91,10 @@ export async function verifyRandomPreview(page){
  await page.getByRole("button",{name:"ランダム生成",exact:true}).click();
  await page.waitForFunction(()=>!document.getElementById("regenerate").disabled);
  const mobile=await page.evaluate(()=>window.__voucherQa.current);
- assert.notEqual(mobile.merchant.name,expected.merchant.name);assert.notEqual(mobile.template,expected.template);assert.equal(mobile.type,"receipt");
+ assert.notEqual(mobile.merchant.name,expected.merchant.name);assert.equal(mobile.template,expected.template);assert.equal(mobile.type,"receipt");
  const mobileWait=page.waitForEvent("download");await page.locator("#downloadPdf").click();
  const mobileDownload=await mobileWait;
  assert.equal((await readFile(await mobileDownload.path())).subarray(0,5).toString(),"%PDF-");
- return {variants,mobile:{company:mobile.merchant.name,template:mobile.templateName},rapidClicksIgnored:true,previewPdfZipIdentical:true,conditionsPreserved:true,seedReproduced:true,iphoneWidth:390};
+ const print=await verifyPrintLayout(page);
+ return {print,variants,mobile:{company:mobile.merchant.name,template:mobile.templateName},rapidClicksIgnored:true,previewPdfZipIdentical:true,conditionsPreserved:true,seedReproduced:true,iphoneWidth:390};
 }

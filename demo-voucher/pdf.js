@@ -5,6 +5,9 @@ let fontBytes;const previewPages=new WeakMap(),previewImages=new WeakMap();
 function bytes(){if(!fontBytes){const s=atob(g.DEMO_FONT_BASE64);fontBytes=Uint8Array.from(s,c=>c.charCodeAt(0));}return fontBytes;}
 function rgb(a){return g.PDFLib.rgb(...a);}function color(hex){return hex.match(/[a-f0-9]{2}/gi).map(x=>parseInt(x,16)/255);}
 function fixedDate(d){return new Date(d+'T12:00:00Z');}
+// Physical page sizes in PDF points (72 pt = 25.4 mm).
+// All normal templates use the common 80 mm roll; their length follows the items.
+function pageSize(d){return d.type==='invoice'?{width:595.28,height:841.89}:d.receiptStyle==='handwritten'?{width:595.28,height:365}:{width:80*72/25.4,height:490+d.items.length*35+(d.template===9?60:0)};}
 async function document(title,date){const doc=await g.PDFLib.PDFDocument.create();doc.registerFontkit(g.fontkit);doc.setTitle(title+' / 全件架空・研修用');doc.setAuthor('Demo Voucher Studio');doc.setCreator('Demo Voucher Studio '+C().VERSION);doc.setProducer('pdf-lib / embedded Noto Sans JP');doc.setCreationDate(fixedDate(date));doc.setModificationDate(fixedDate(date));const font=await doc.embedFont(bytes(),{subset:true});font._demoFamily='DemoNotoJP';return{doc,font};}
 function painter(page,font){const H=page.getHeight(),W=page.getWidth(),commands=page._demoPaint||(page._demoPaint=[]);
 function rect(x,y,w,h,fill=light,border=null){page.drawRectangle({x,y:H-y-h,width:w,height:h,color:rgb(fill),...(border?{borderColor:rgb(border),borderWidth:.6}:{})});commands.push({op:'rect',x,y,w,h,fill,border});}
@@ -65,7 +68,7 @@ let sy=ty+33;p.right('税抜合計  '+money(d.totals.net)+' 円',350,sy,194,10);
 p.line(m,730,p.W-m,730,light);p.text(d.merchant.name,m,744,10,a);p.text(d.merchant.address,m,761,8,muted);p.text('登録番号 '+C().DUMMY+'（無効なダミー）',m,776,8,muted);
 p.right('振込先：デモ用のため記載省略',333,748,220,8,muted);p.right('様式：'+d.templateName,333,765,220,8,muted);
 disclaimer(p,803);return page;}
-function receipt(d,font,doc){const k=d.template,w=[226.77,240.94,215.43,255.12,226.77,240.94,226.77,255.12,215.43,240.94][k],h=490+d.items.length*35+(k===9?60:0);const page=doc.addPage([w,h]),p=painter(page,font),m=16,inner=w-32,a=k===8?ink:color(d.merchant.color);
+function receipt(d,font,doc){const k=d.template,{width:w,height:h}=pageSize(d);const page=doc.addPage([w,h]),p=painter(page,font),m=16,inner=w-32,a=k===8?ink:color(d.merchant.color);
 if(k===3||k===7){p.rect(m,15,inner,88,light);logo(p,d.merchant.logo,w/2-15,22,30,a);p.center(d.merchant.name,61,12,a,m+4,inner-8);}
 else if(k===1||k===6){logo(p,d.merchant.logo,w/2-18,18,36,a);p.center(d.merchant.latin,62,13,a);p.center(d.merchant.name,85,11);}
 else{logo(p,d.merchant.logo,m,21,27,a);p.text(d.merchant.latin,m+38,20,12,a,{width:inner-39});p.text('領収書 / レシート',m+38,40,10);p.center(d.merchant.name,77,12,a);}
@@ -78,12 +81,7 @@ rule(y+1);y+=14;
 if(k===7||k===3){p.rect(m,y-3,inner,36,a);p.text('合計',m+7,y+5,12,white);p.right('¥ '+money(d.totals.gross),m+45,y+1,inner-52,19,white);}else{p.text('合計',m,y+1,13);p.right('¥ '+money(d.totals.gross),m+50,y-2,inner-50,22,a);}
 y+=46;
 d.totals.groups.filter(t=>t.amount).forEach(t=>{p.text(t.rate+'%対象'+(d.pricing==='inclusive'?'税込':'税抜'),m,y,8);p.right(money(t.amount)+'円',m+89,y,inner-89,9);y+=16;p.text((d.pricing==='inclusive'?'内':'外')+'消費税 '+t.rate+'%',m+8,y,8,muted);p.right(money(t.tax)+'円',m+89,y,inner-89,9);y+=19;});
-p.text(d.payment,m,y+2,8);p.right(money(d.tender)+'円',m+90,y+2,inner-90,8);p.text('お釣り',m,y+19,8);p.right(money(d.change)+'円',m+90,y+19,inner-90,8);y+=43;rule(y);y+=13;p.center('* 軽減税率対象（持帰り食品）',y,7,muted);p.center(roundLabel(d.rounding)+' / 税率ごとに1回計算',y+15,7,muted);
-if(k===5){p.line(m,y+37,w-m,y+37,muted,.7,[3,2]);p.center('THANK YOU / DEMO ONLY',y+47,10,a);}else p.center('ありがとうございました',y+42,9,a);
-disclaimer(p,h-34,true);return page;}
-async function voucher(d){C().assertDoc(d);const {doc,font}=await document(d.id,d.date);const page=d.receiptStyle==='handwritten'?await g.VoucherArtwork.handReceipt(d,doc,font,painter,logo):(d.type==='invoice'?invoice:receipt)(d,font,doc);
- if(d.pdfMode==='image'){const png=await g.VoucherArtwork.raster(page),out=await g.PDFLib.PDFDocument.create();
-  // A single opaque RGB image, lossless Flate compression and classic xref tables.
+p.text(d.payment,m,y+2,8);p.right(money(d.tender)+'円',m…205 tokens truncated… single opaque RGB image, lossless Flate compression and classic xref tables.
   out.setTitle(d.id+' / DEMO IMAGE ONLY');out.setAuthor('Demo Voucher Studio');out.setCreator('Demo Voucher Studio '+C().VERSION);out.setCreationDate(fixedDate(d.date));out.setModificationDate(fixedDate(d.date));const image=await out.embedPng(png),imagePage=out.addPage([page.getWidth(),page.getHeight()]);imagePage.drawImage(image,{x:0,y:0,width:page.getWidth(),height:page.getHeight()});const saved=await out.save({useObjectStreams:false});
   // pdf-lib always declares 1.7. This opaque RGB/Flate subset uses only 1.4 features.
   // The same-length header leaves every classic-xref offset unchanged.
@@ -101,5 +99,5 @@ function readme(batch){return '架空証憑デモセット / Demo Voucher Studio
 async function build(batch,onProgress=()=>{},options={}){const pdfs=[],entries=[];for(let i=0;i<batch.documents.length;i++){const d=batch.documents[i];pdfs.push(await voucher(d));entries.push({name:'01_投入用/'+d.filename,data:pdfs[i]});onProgress(i+1,batch.documents.length);await new Promise(r=>setTimeout(r,0));}
 if(!options.proofsOnly){entries.push({name:'02_照合用_投入禁止/期待値.csv',data:C().csv(batch)},{name:'02_照合用_投入禁止/照合一覧.pdf',data:await summary(batch)},{name:'02_照合用_投入禁止/生成条件.json',data:JSON.stringify({version:batch.version,...batch.config},null,2)},{name:'02_照合用_投入禁止/全明細.json',data:JSON.stringify(batch,null,2)},{name:'03_見本_投入禁止/全件見本.pdf',data:await booklet(pdfs)},{name:'最初にお読みください.txt',data:readme(batch)});}
 return{entries,pdfs,zip:C().zip(entries)};}
-g.VoucherPDF={voucher,previewFor,summary,booklet,build,readme,logo};
+g.VoucherPDF={voucher,previewFor,pageSize,summary,booklet,build,readme,logo};
 })(globalThis);
