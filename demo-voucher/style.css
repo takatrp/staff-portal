@@ -26,7 +26,7 @@
  .print-sheet[data-ready="true"]{display:block!important;print-color-adjust:exact;-webkit-print-color-adjust:exact}
  .print-page{position:relative;break-inside:avoid;break-after:page}
  .print-page:last-child{break-after:auto}.print-page.portrait{page:voucherPortrait;width:210mm;height:297mm}.print-page.landscape{page:voucherLandscape;width:297mm;height:210mm}
- .print-page img{position:absolute;display:block;max-width:none;max-height:none;box-shadow:none}
+ .print-page img{position:absolute;display:block;max-width:none;max-height:none;box-shadow:none;opacity:1;filter:none;mix-blend-mode:normal}
  /* The outline starts at the receipt edge, outside its image/layout box. */
  .print-page img[data-id^="REC-"]{outline:.2mm dashed #b8b8b8;outline-offset:0}
  .print-sheet[data-ready="false"]+#printUnavailable{display:block}

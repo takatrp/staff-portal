@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 import { createRequire } from 'node:module';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { inflateSync } from 'node:zlib';
+import { installTextInkProbe, inspectTextInk } from './text-ink.e2e.mjs';
 const require = createRequire(import.meta.url), PDF = require('../vendor/pdf-lib.min.js');
 
 // Inspect the saved PDF, including the image's actual placement, rather than PNG dpi metadata.
@@ -69,6 +70,7 @@ function multiply([a,b,c,d,e,f], [g,h,i,j,k,l]) {
 }
 
 export async function verifyImageProfile(page, { outputDir } = {}) {
+  await installTextInkProbe(page);
   const ids = await page.evaluate(() => {
     const config = { startDate: '2026-10-01', endDate: '2026-10-01', seed: 'image-profile-audit', pdfMode: 'image', taxMix: 'mixed' };
     const docs = VoucherCore.generate(config).documents;
@@ -96,10 +98,13 @@ export async function verifyImageProfile(page, { outputDir } = {}) {
   for (const [index, id] of ids.entries()) {
     const result = await page.evaluate(async index => {
       const { doc, fourPoint } = window.__imageProfileCases[index], raster = VoucherArtwork.raster;
-      if (fourPoint) VoucherArtwork.raster = async page => {
-        page._demoPaint.push({ op: 'text', text: '4pt 0123456789 ABCDEFGH 領収書 請求書 金額 消費税',
-          family: 'DemoNotoJP', size: 4, x: 8, baseline: page.getHeight()-3, color: [0,0,0], rotation: 0 });
-        return raster(page);
+      let probe;
+      VoucherArtwork.raster = async page => {
+        if (fourPoint) page._demoPaint.push({ op: 'text', text: '4pt 0123456789 ABCDEFGH 領収書 請求書 金額 消費税',
+          family: 'DemoNotoJP', size: 4, x: 8, baseline: page.getHeight()-3, color: [0,0,0], opacity: 1, rotation: 0 });
+        const png = await raster(page);
+        probe = window.__sampleTextInk(page, doc);
+        return png;
       };
       let bytes;
       try { bytes = await VoucherPDF.voucher(doc); } finally { VoucherArtwork.raster = raster; }
@@ -112,10 +117,11 @@ export async function verifyImageProfile(page, { outputDir } = {}) {
         rgb[to++] = rgba[from]; rgb[to++] = rgba[from+1]; rgb[to++] = rgba[from+2];
       }
       const digest = await crypto.subtle.digest('SHA-256', rgb);
-      return { bytes: Array.from(bytes), png, pixelHash: Array.from(new Uint8Array(digest), n => n.toString(16).padStart(2,'0')).join('') };
+      return { bytes: Array.from(bytes), png, probe, pixelHash: Array.from(new Uint8Array(digest), n => n.toString(16).padStart(2,'0')).join('') };
     }, index);
     const bytes = Buffer.from(result.bytes), info = await inspectImagePdf(bytes, { pixelHash: result.pixelHash });
-    records.push({ id, ...info });
+    const textInk = await inspectTextInk(bytes, result.probe);
+    records.push({ id, ...info, textInk });
     if (outputDir) {
       await writeFile(`${outputDir}/${id}.pdf`, bytes);
       await writeFile(`${outputDir}/${id}.png`, Buffer.from(result.png.split(',')[1], 'base64'));
@@ -124,5 +130,7 @@ export async function verifyImageProfile(page, { outputDir } = {}) {
   if (outputDir) await writeFile(`${outputDir}/measurements.json`, JSON.stringify(records, null, 2));
   return { cases: records.length, minDpi: Math.min(...records.flatMap(r => [r.dpiX,r.dpiY])),
     maxDpi: Math.max(...records.flatMap(r => [r.dpiX,r.dpiY])), rgb24: true, transparent: false,
-    losslessPixelHashesMatched: records.length, pdfVersion: '1.4', textLayer: false };
+    losslessPixelHashesMatched: records.length, pdfVersion: '1.4', textLayer: false,
+    pureBlackTextCases: records.length, blackCorePixels: records.reduce((n,r)=>n+r.textInk.corePixels,0),
+    textOpacity: 1, coloredGraphicsCases: records.filter(r=>r.textInk.coloredGraphics).length };
 }
