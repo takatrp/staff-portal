@@ -7,25 +7,25 @@ async function loadHandData(){if(g.DEMO_HAND_FONTS)return g.DEMO_HAND_FONTS;if(!
 async function fontFace(family){if(!faces.has(family))faces.set(family,(async()=>{let data;if(family===families.base)data=g.DEMO_FONT_BASE64;else{const fonts=await loadHandData();data=family===families.klee?fonts.klee:fonts.yomogi;}const face=new FontFace(family,decode(data));await face.load();g.document.fonts.add(face);return face;})());return faces.get(family);}
 function css(c){return 'rgb('+c.map(v=>Math.round(v*255)).join(',')+')';}
 async function raster(page){if(!g.document||!g.FontFace)throw Error('画像PDFはブラウザで生成してください。');const commands=page._demoPaint||[];await Promise.all([...new Set(commands.filter(c=>c.op==='text').map(c=>c.family))].map(fontFace));
- const scale=IMAGE_DPI/72,canvas=g.document.createElement('canvas');canvas.width=Math.ceil(page.getWidth()*scale);canvas.height=Math.ceil(page.getHeight()*scale);const ctx=canvas.getContext('2d',{alpha:false,colorSpace:'srgb'});if(!ctx)throw Error('画像PDFの作成に対応していないブラウザです。');ctx.fillStyle='white';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.scale(scale,scale);ctx.fontKerning='none';ctx.textBaseline='alphabetic';
+ const scale=IMAGE_DPI/72,canvas=g.document.createElement('canvas');canvas.width=Math.ceil(page.getWidth()*scale);canvas.height=Math.ceil(page.getHeight()*scale);const ctx=canvas.getContext('2d',{alpha:false,colorSpace:'srgb'});if(!ctx)throw Error('画像PDFの作成に対応していないブラウザです。');ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';ctx.filter='none';ctx.fillStyle='white';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.scale(scale,scale);ctx.fontKerning='none';ctx.textBaseline='alphabetic';
  for(const c of commands){ctx.save();if(c.op==='rect'){ctx.fillStyle=css(c.fill);ctx.fillRect(c.x,c.y,c.w,c.h);if(c.border){ctx.strokeStyle=css(c.border);ctx.lineWidth=.6;ctx.strokeRect(c.x,c.y,c.w,c.h);}}
  else if(c.op==='line'){ctx.beginPath();ctx.strokeStyle=css(c.color);ctx.lineWidth=c.width;ctx.setLineDash(c.dash||[]);ctx.moveTo(c.x,c.y);ctx.lineTo(c.x2,c.y2);ctx.stroke();}
  else if(c.op==='circle'){ctx.fillStyle=css(c.color);ctx.beginPath();ctx.arc(c.x,c.y,c.r,0,Math.PI*2);ctx.fill();}
- else if(c.op==='text'){ctx.fillStyle=css(c.color);ctx.font=c.size+'px "'+c.family+'"';ctx.translate(c.x,c.baseline);ctx.rotate(-c.rotation*Math.PI/180);ctx.fillText(c.text,0,0);}ctx.restore();}
+ else if(c.op==='text'){ctx.globalAlpha=1;ctx.fillStyle=css(c.color);ctx.font=c.size+'px "'+c.family+'"';ctx.translate(c.x,c.baseline);ctx.rotate(-c.rotation*Math.PI/180);ctx.fillText(c.text,0,0);}ctx.restore();}
  return canvas.toDataURL('image/png');
 }
 function rng(seed){let n=2166136261;for(const c of seed){n=Math.imul(n^c.codePointAt(0),16777619);}return()=>{n^=n<<13;n^=n>>>17;n^=n<<5;return(n>>>0)/4294967296;};}
 async function handReceipt(d,doc,base,painter,logo){const data=await loadHandData(),key=d.handwriting==='neat'?'klee':'yomogi',font=await doc.embedFont(decode(data[key]),{subset:true});font._demoFamily=families[key];const page=doc.addPage([595.28,365]),p=painter(page,base),pen=painter(page,font),rand=rng(d.seed+'|'+d.id+'|pen-v1');
- const colors=[[.34,.48,.38],[.31,.42,.54],[.60,.39,.34]],accent=colors[d.template],printed=[.28,.33,.32],blue=[.10,.17,.29],m=22,W=page.getWidth(),right=W-m;
+ const colors=[[.34,.48,.38],[.31,.42,.54],[.60,.39,.34]],accent=colors[d.template],printed=[0,0,0],penInk=printed,m=22,W=page.getWidth(),right=W-m;
  p.rect(0,0,W,365,[.998,.996,.982]);p.rect(m,18,W-2*m,300,[1,.999,.990],accent);p.rect(m+1,19,5,298,accent);p.line(m+10,65,right-10,65,accent,.8);p.text('領　収　書',m+205,27,24,accent);p.right('No. '+d.id,m+365,31,153,9,printed);
  function hand(value,x,y,size,width){const s=String(value);let fs=size;while(font.widthOfTextAtSize(s,fs)>width&&fs>6)fs-=.25;if(d.handwriting==='scrawl'){
   // Vary each glyph while retaining the exact source text and a safe field width.
   const strokes=Array.from(s,ch=>({ch,scale:.84+rand()*.30,rotation:(rand()-.5)*18,lift:(rand()-.5)*.22,gap:.03+rand()*.12}));
   const span=pt=>strokes.reduce((sum,t)=>sum+font.widthOfTextAtSize(t.ch,pt*t.scale)+pt*t.gap,pt*.36);
   while(span(fs)>width&&fs>6)fs-=.25;
-  let at=x+fs*.18;for(const t of strokes){const pt=fs*t.scale;pen.text(t.ch,at,y+fs-pt+t.lift*fs,pt,blue,{width:Math.max(30,width-(at-x)+4),rotation:t.rotation});at+=font.widthOfTextAtSize(t.ch,pt)+fs*t.gap;}return;
- }if(d.handwriting!=='uneven'){pen.text(s,x,y,fs,blue,{width,rotation:d.handwriting==='natural'?-.45:0});return;}
-  const chars=Array.from(s),extra=.10;while(font.widthOfTextAtSize(s,fs)+chars.length*extra>width&&fs>6)fs-=.25;let at=x;for(const ch of chars){const dy=(rand()-.5)*1.4,rotation=(rand()-.5)*3.2;pen.text(ch,at,y+dy,fs,blue,{width:Math.max(30,width-(at-x)+4),rotation});at+=font.widthOfTextAtSize(ch,fs)+extra+(rand()-.5)*.18;}
+  let at=x+fs*.18;for(const t of strokes){const pt=fs*t.scale;pen.text(t.ch,at,y+fs-pt+t.lift*fs,pt,penInk,{width:Math.max(30,width-(at-x)+4),rotation:t.rotation});at+=font.widthOfTextAtSize(t.ch,pt)+fs*t.gap;}return;
+ }if(d.handwriting!=='uneven'){pen.text(s,x,y,fs,penInk,{width,rotation:d.handwriting==='natural'?-.45:0});return;}
+  const chars=Array.from(s),extra=.10;while(font.widthOfTextAtSize(s,fs)+chars.length*extra>width&&fs>6)fs-=.25;let at=x;for(const ch of chars){const dy=(rand()-.5)*1.4,rotation=(rand()-.5)*3.2;pen.text(ch,at,y+dy,fs,penInk,{width:Math.max(30,width-(at-x)+4),rotation});at+=font.widthOfTextAtSize(ch,fs)+extra+(rand()-.5)*.18;}
  }
  const date=d.date.split('-').map(Number);hand(date[0]+' 年 '+date[1]+' 月 '+date[2]+' 日',370,76,13,175);
  p.text('宛名',m+17,84,8,printed);hand(d.buyer,m+17,101,19,480);p.line(m+17,128,right-18,128,accent,.7);
