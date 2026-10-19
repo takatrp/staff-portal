@@ -27,7 +27,16 @@ if(!['varied','10','8','mixed'].includes(c.taxMix))throw Error('税率構成が�
 if(!['varied','exclusive','inclusive'].includes(c.pricing))throw Error('金額表示が正しくありません。');
 if(!['floor','round','ceil'].includes(c.rounding))throw Error('端数方式が正しくありません。');
 for(const [k,values] of Object.entries({receiptStyle:['normal','handwritten'],handwriting:['auto','neat','natural','uneven','scrawl'],pdfMode:['text','image']}))if(!values.includes(c[k]))throw Error('領収書・PDFの出力形式が正しくありません。');
-c.seed=String(c.seed).trim();if(!c.seed||c.seed.length>80)throw Error('seedは1〜80文字で指定してください。');return c;}
+c.seed=String(c.seed).trim();if(!c.seed||c.seed.length>80)throw Error('seedは1〜80文字で指定してください。');
+if(c.variations!==undefined){
+ if(!Array.isArray(c.variations)||c.variations.length>100)throw Error('ランダム変更の条件が正しくありません。');
+ const ids=new Set();c.variations=c.variations.map(v=>{
+  if(!v||typeof v.id!=='string'||! /^(INV|REC)-0[0-4][0-9]$|^(INV|REC)-050$/.test(v.id)||ids.has(v.id))throw Error('ランダム変更の証憑IDが正しくありません。');
+  const count=v.id.startsWith('INV')?c.invoiceCount:c.receiptCount;
+  if(Number(v.id.slice(4))<1||Number(v.id.slice(4))>count)throw Error('ランダム変更の対象がありません。');
+  ids.add(v.id);const value={id:v.id};for(const key of ['companySeed','amountSeed'])if(v[key]!==undefined){if(typeof v[key]!=='string'||!v[key]||v[key].length>80)throw Error('ランダム変更のseedが正しくありません。');value[key]=v[key];}return value;
+ });
+}return c;}
 function divide(n,d,method){if(!Number.isSafeInteger(n)||n<0||!Number.isSafeInteger(d)||d<=0)throw Error('金額が範囲外です。');const q=Math.floor(n/d),r=n%d;return q+(method==='ceil'?Number(r>0):method==='round'?Number(r*2>=d):0);}
 function totals(items,pricing,rounding){const groups=[8,10].map(rate=>{const amount=items.filter(x=>x.rate===rate).reduce((s,x)=>s+x.quantity*x.unitPrice,0);const tax=divide(amount*rate,pricing==='inclusive'?100+rate:100,rounding);const net=pricing==='inclusive'?amount-tax:amount;return{rate,amount,net,tax,gross:net+tax};});return{groups,net:groups.reduce((s,x)=>s+x.net,0),tax:groups.reduce((s,x)=>s+x.tax,0),gross:groups.reduce((s,x)=>s+x.gross,0)};}
 function plusDays(d,n){return new Date(day(d)+n*86400000).toISOString().slice(0,10);}
@@ -39,7 +48,26 @@ const count=type==='invoice'?4+Math.floor(r()*4):3+Math.floor(r()*6);const items
 for(let j=0;j<count;j++){const rate=taxMode==='mixed'?(j%2?10:8):Number(taxMode),pool=type==='receipt'?receiptPools[brandIndex-10][rate===8?0:1]:(rate===8?goods8:goods10);const item=pick(pool);const quantity=1+Math.floor(r()*(type==='invoice'?8:3));const unitPrice=item[2]+Math.floor(r()*23);items.push({name:item[0],rate,unitPrice,quantity,category:item[3],amount:unitPrice*quantity});}
 const date=plusDays(c.startDate,Math.floor(r()*(span+1))),id=(type==='invoice'?'INV':'REC')+'-'+String(i+1).padStart(3,'0'),t=totals(items,pricing,c.rounding);const merchant={name,latin,color:'#'+color,logo:brandIndex,registration:DUMMY,address:'架空県サンプル市デモ町 '+(brandIndex+1)+'-2-3'};
 const doc={id,type,date,dueDate:plusDays(date,30),time:String(9+Math.floor(r()*10)).padStart(2,'0')+':'+String(Math.floor(r()*60)).padStart(2,'0'),merchant,buyer:'株式会社サンプル研修 御中',template:paper,templateName:handwritten?['領収書用紙・若草','領収書用紙・藍','領収書用紙・朱'][paper]+' / '+{neat:'整った筆跡',natural:'やわらかな筆跡',uneven:'少しラフな筆跡',scrawl:'崩した筆跡'}[hand]:(type==='invoice'?templates:receiptTemplates)[templateIndex],receiptStyle:handwritten?'handwritten':'normal',handwriting:hand,pdfMode:c.pdfMode,pricing,rounding:c.rounding,taxMode,items,totals:t,payment:type==='invoice'?'銀行振込（デモ）':ix%3?'クレジット（デモ）':'現金（デモ）',seed:c.seed};doc.tender=doc.payment.startsWith('現金')?Math.ceil(t.gross/1000)*1000:t.gross;doc.change=doc.tender-t.gross;doc.filename=id+'_'+date+'_'+(type==='invoice'?'請求書':handwritten?'領収書':'レシート')+(c.pdfMode==='image'?'_画像':'')+'.pdf';assertDoc(doc);docs.push(doc);}
+for(const d of docs){const v=c.variations?.find(v=>v.id===d.id);if(v)applyVariation(d,v);}
 return{version:VERSION,config:c,documents:docs,summary:{count:docs.length,total:docs.reduce((s,d)=>s+d.totals.gross,0),verified:true}};}
+function applyVariation(d,v){
+ if(v.companySeed){const r=random(v.companySeed),index=(d.type==='invoice'?0:10)+Math.floor(r()*10),[name,latin,color]=brands[index];d.merchant={name,latin,color:'#'+color,logo:index,registration:DUMMY,address:'架空県サンプル市デモ町 '+(index+1)+'-2-3'};}
+ if(v.amountSeed){const r=random(v.amountSeed);d.items=d.items.map(item=>{const unitPrice=Math.max(1,Math.round(item.unitPrice*(.6+r()*.8)));return{...item,unitPrice,amount:unitPrice*item.quantity};});d.totals=totals(d.items,d.pricing,d.rounding);d.tender=d.payment.startsWith('現金')?Math.ceil(d.totals.gross/1000)*1000:d.totals.gross;d.change=d.tender-d.totals.gross;}
+ assertDoc(d);
+}
+function randomize(batch,id,mode,entropy){
+ if(!['both','company','amount'].includes(mode))throw Error('ランダム生成の対象を選んでください。');
+ const previous=batch.documents.find(d=>d.id===id);if(!previous)throw Error('証憑を選択してください。');
+ if(typeof entropy!=='string'||!entropy||entropy.length>60)throw Error('ランダム生成のseedが正しくありません。');
+ for(let attempt=0;attempt<100;attempt++){
+  const variations=(batch.config.variations||[]).map(v=>({...v})),v=variations.find(v=>v.id===id)||{id};if(!variations.includes(v))variations.push(v);
+  if(mode!=='amount')v.companySeed=entropy+'-c-'+attempt;
+  if(mode!=='company')v.amountSeed=entropy+'-a-'+attempt;
+  const next=generate({...batch.config,variations}),current=next.documents.find(d=>d.id===id);
+  if((mode==='amount'||current.merchant.name!==previous.merchant.name)&&(mode==='company'||current.totals.gross!==previous.totals.gross))return next;
+ }
+ throw Error('別の社名・金額を生成できませんでした。もう一度お試しください。');
+}
 function assertDoc(d){const expected=totals(d.items,d.pricing,d.rounding);for(const k of ['net','tax','gross'])if(expected[k]!==d.totals[k])throw Error(d.id+' 計算不一致 '+k);if(d.items.some(x=>x.rate===8&&x.category!=='food'))throw Error('軽減税率対象外の商品です。');if(d.taxMode==='mixed'&&new Set(d.items.map(x=>x.rate)).size!==2)throw Error('混在税率不足');if(expected.net+expected.tax!==expected.gross)throw Error('総額不整合');return true;}
 function csv(batch){const header=['証憑ID','ファイル名','種別','取引日','発行者（架空）','ダミー登録番号','様式','金額方式','端数方式','8%対象金額（表示基準）','8%税抜金額','8%税額','8%税込金額','10%対象金額（表示基準）','10%税抜金額','10%税額','10%税込金額','税抜合計','消費税合計','税込総額','検算','seed','バージョン','PDF形式','領収書形式','筆跡'];const rows=batch.documents.map(d=>{const [a,b]=d.totals.groups;return[d.id,d.filename,d.type==='invoice'?'請求書':'レシート',d.date,d.merchant.name,DUMMY,d.templateName,d.pricing==='inclusive'?'税込内税':'税抜外税',{floor:'切捨て',round:'四捨五入',ceil:'切上げ'}[d.rounding],a.amount,a.net,a.tax,a.gross,b.amount,b.net,b.tax,b.gross,d.totals.net,d.totals.tax,d.totals.gross,assertDoc(d)?'OK':'NG',d.seed,VERSION,d.pdfMode==='image'?'画像（文字層なし）':'文字あり',d.receiptStyle==='handwritten'?'手書き風':'通常',d.handwriting];});return '\uFEFF'+[header,...rows].map(a=>a.map(v=>'"'+String(typeof v==='string'&&/^\s*[=+@-]/.test(v)?"'"+v:v).replace(/"/g,'""')+'"').join(',')).join('\r\n')+'\r\n';}
 const enc=s=>new TextEncoder().encode(s);const crcTable=Array.from({length:256},(_,i)=>{let n=i;for(let j=0;j<8;j++)n=n&1?0xEDB88320^(n>>>1):n>>>1;return n>>>0;});
@@ -48,5 +76,5 @@ function zip(entries){const chunks=[],central=[];let pos=0;const block=(size,fil
 const local=block(30,v=>{v.setUint32(0,0x04034b50,true);v.setUint16(4,20,true);v.setUint16(6,0x800,true);v.setUint16(12,33,true);v.setUint32(14,crc,true);v.setUint32(18,data.length,true);v.setUint32(22,data.length,true);v.setUint16(26,name.length,true);});chunks.push(local,name,data);
 central.push(block(46,v=>{v.setUint32(0,0x02014b50,true);v.setUint16(4,20,true);v.setUint16(6,20,true);v.setUint16(8,0x800,true);v.setUint16(14,33,true);v.setUint32(16,crc,true);v.setUint32(20,data.length,true);v.setUint32(24,data.length,true);v.setUint16(28,name.length,true);v.setUint32(42,pos,true);}),name);pos+=30+name.length+data.length;}
 const len=central.reduce((s,a)=>s+a.length,0);chunks.push(...central,block(22,v=>{v.setUint32(0,0x06054b50,true);v.setUint16(8,entries.length,true);v.setUint16(10,entries.length,true);v.setUint32(12,len,true);v.setUint32(16,pos,true);}));const out=new Uint8Array(chunks.reduce((s,a)=>s+a.length,0));let at=0;for(const a of chunks){out.set(a,at);at+=a.length;}return out;}
-const api={VERSION,DUMMY,templates,receiptTemplates,brands,defaultDateRange,config,generate,totals,divide,assertDoc,csv,zip,crc32,yen};if(typeof module!=='undefined')module.exports=api;g.VoucherCore=api;
+const api={VERSION,DUMMY,templates,receiptTemplates,brands,defaultDateRange,config,generate,randomize,totals,divide,assertDoc,csv,zip,crc32,yen};if(typeof module!=='undefined')module.exports=api;g.VoucherCore=api;
 })(globalThis);

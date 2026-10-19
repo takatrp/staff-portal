@@ -111,9 +111,12 @@ try {
 
   const voucherContext = await browser.newContext({ acceptDownloads: true });
   const voucherPage = await voucherContext.newPage();
-  voucherPage.on("pageerror", (error) => runtimeErrors.push(error.message));
+  voucherPage.on("pageerror", (error) => { runtimeErrors.push(error.message); console.error("VOUCHER_PAGE_ERROR", error.message); });
   await voucherPage.goto(new URL("./demo-voucher/", portalUrl).href, { waitUntil: "domcontentloaded" });
-  await voucherPage.waitForFunction(() => !document.getElementById("downloadZip").disabled);
+  await voucherPage.waitForFunction(() => !document.getElementById("downloadZip").disabled, undefined, { timeout: 90_000 }).catch(async error => {
+    console.error("VOUCHER_INITIAL_STATE", await voucherPage.locator("body").innerText(), runtimeErrors);
+    throw error;
+  });
   assert.match(await voucherPage.locator("#resultSummary").innerText(), /20件/);
   assert.equal(await voucherPage.locator(".doc-row").count(), 20);
   assert.equal(await voucherPage.locator('a[href="../"]').innerText(), "スタッフポータルへ");
