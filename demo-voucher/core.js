@@ -20,13 +20,18 @@ function defaultDateRange(now=new Date()){
  const format=d=>[d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');
  return{startDate:format(start),endDate:format(now)};
 }
-function config(input={}){const c=Object.assign({invoiceCount:10,receiptCount:10,...defaultDateRange(),taxMix:'varied',pricing:'varied',rounding:'floor',receiptStyle:'normal',handwriting:'auto',pdfMode:'image',seed:'matsumoto-demo-01'},input);
+function config(input={}){const c=Object.assign({invoiceCount:10,receiptCount:10,...defaultDateRange(),taxMix:'varied',pricing:'varied',rounding:'floor',receiptStyle:'normal',handwriting:'auto',pdfMode:'image',issuerName:'',recipientName:'',seed:'matsumoto-demo-01'},input);
 for(const k of ['invoiceCount','receiptCount']){c[k]=Number(c[k]);if(!Number.isInteger(c[k])||c[k]<0||c[k]>50)throw Error('各件数は0〜50件で指定してください。');}if(c.invoiceCount+c.receiptCount===0)throw Error('1件以上指定してください。');
 if(day(c.endDate)<day(c.startDate))throw Error('終了日は開始日以降を指定してください。');
 if(!['varied','10','8','mixed'].includes(c.taxMix))throw Error('税率構成が正しくありません。');
 if(!['varied','exclusive','inclusive'].includes(c.pricing))throw Error('金額表示が正しくありません。');
 if(!['floor','round','ceil'].includes(c.rounding))throw Error('端数方式が正しくありません。');
 for(const [k,values] of Object.entries({receiptStyle:['normal','handwritten'],handwriting:['auto','neat','natural','uneven','scrawl'],pdfMode:['text','image']}))if(!values.includes(c[k]))throw Error('領収書・PDFの出力形式が正しくありません。');
+for(const key of ['issuerName','recipientName']){
+ if(typeof c[key]!=='string')throw Error('社名は文字列で指定してください。');
+ c[key]=c[key].trim().normalize('NFC');
+ if(c[key].length>120||/[\u0000-\u001f\u007f-\u009f\u200e\u200f\u2028-\u202e\u2066-\u2069\uD800-\uDFFF]/u.test(c[key]))throw Error('社名は改行・制御文字を含めず120文字以内で指定してください。');
+}
 c.seed=String(c.seed).trim();if(!c.seed||c.seed.length>80)throw Error('seedは1〜80文字で指定してください。');
 if(c.variations!==undefined){
  if(!Array.isArray(c.variations)||c.variations.length>100)throw Error('ランダム変更の条件が正しくありません。');
@@ -48,7 +53,10 @@ const count=type==='invoice'?4+Math.floor(r()*4):3+Math.floor(r()*6);const items
 for(let j=0;j<count;j++){const rate=taxMode==='mixed'?(j%2?10:8):Number(taxMode),pool=type==='receipt'?receiptPools[brandIndex-10][rate===8?0:1]:(rate===8?goods8:goods10);const item=pick(pool);const quantity=1+Math.floor(r()*(type==='invoice'?8:3));const unitPrice=item[2]+Math.floor(r()*23);items.push({name:item[0],rate,unitPrice,quantity,category:item[3],amount:unitPrice*quantity});}
 const date=plusDays(c.startDate,Math.floor(r()*(span+1))),id=(type==='invoice'?'INV':'REC')+'-'+String(i+1).padStart(3,'0'),t=totals(items,pricing,c.rounding);const merchant={name,latin,color:'#'+color,logo:brandIndex,registration:DUMMY,address:'架空県サンプル市デモ町 '+(brandIndex+1)+'-2-3'};
 const doc={id,type,date,dueDate:plusDays(date,30),time:String(9+Math.floor(r()*10)).padStart(2,'0')+':'+String(Math.floor(r()*60)).padStart(2,'0'),merchant,buyer:'株式会社サンプル研修 御中',template:paper,templateName:handwritten?['領収書用紙・若草','領収書用紙・藍','領収書用紙・朱'][paper]+' / '+{neat:'整った筆跡',natural:'やわらかな筆跡',uneven:'少しラフな筆跡',scrawl:'崩した筆跡'}[hand]:(type==='invoice'?templates:receiptTemplates)[templateIndex],receiptStyle:handwritten?'handwritten':'normal',handwriting:hand,pdfMode:c.pdfMode,pricing,rounding:c.rounding,taxMode,items,totals:t,payment:type==='invoice'?'銀行振込（デモ）':ix%3?'クレジット（デモ）':'現金（デモ）',seed:c.seed};doc.tender=doc.payment.startsWith('現金')?Math.ceil(t.gross/1000)*1000:t.gross;doc.change=doc.tender-t.gross;doc.filename=id+'_'+date+'_'+(type==='invoice'?'請求書':handwritten?'領収書':'レシート')+(c.pdfMode==='image'?'_画像':'')+'.pdf';assertDoc(doc);docs.push(doc);}
-for(const d of docs){const v=c.variations?.find(v=>v.id===d.id);if(v)applyVariation(d,v);}
+for(const d of docs){const v=c.variations?.find(v=>v.id===d.id);if(v)applyVariation(d,v);
+ if(c.issuerName)d.merchant={...d.merchant,name:c.issuerName,latin:c.issuerName};
+ if(c.recipientName)d.buyer=c.recipientName;
+}
 return{version:VERSION,config:c,documents:docs,summary:{count:docs.length,total:docs.reduce((s,d)=>s+d.totals.gross,0),verified:true}};}
 function applyVariation(d,v){
  if(v.companySeed){const r=random(v.companySeed),index=(d.type==='invoice'?0:10)+Math.floor(r()*10),[name,latin,color]=brands[index];d.merchant={name,latin,color:'#'+color,logo:index,registration:DUMMY,address:'架空県サンプル市デモ町 '+(index+1)+'-2-3'};}
@@ -64,7 +72,7 @@ function randomize(batch,id,mode,entropy){
   if(mode!=='amount')v.companySeed=entropy+'-c-'+attempt;
   if(mode!=='company')v.amountSeed=entropy+'-a-'+attempt;
   const next=generate({...batch.config,variations}),current=next.documents.find(d=>d.id===id);
-  if((mode==='amount'||current.merchant.name!==previous.merchant.name)&&(mode==='company'||current.totals.gross!==previous.totals.gross))return next;
+  if((mode==='amount'||current.merchant.name!==previous.merchant.name||(batch.config.issuerName&&current.merchant.logo!==previous.merchant.logo))&&(mode==='company'||current.totals.gross!==previous.totals.gross))return next;
  }
  throw Error('別の社名・金額を生成できませんでした。もう一度お試しください。');
 }

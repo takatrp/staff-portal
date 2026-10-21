@@ -1,4 +1,5 @@
 import { verifyPrintLayout } from './print-layout.e2e.mjs';
+import { verifyCompanyNames } from './company-names.e2e.mjs';
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
@@ -96,5 +97,6 @@ export async function verifyRandomPreview(page){
  const mobileDownload=await mobileWait;
  assert.equal((await readFile(await mobileDownload.path())).subarray(0,5).toString(),"%PDF-");
  const print=await verifyPrintLayout(page);
- return {print,variants,mobile:{company:mobile.merchant.name,template:mobile.templateName},rapidClicksIgnored:true,previewPdfZipIdentical:true,conditionsPreserved:true,seedReproduced:true,iphoneWidth:390};
+ const companyNames=await verifyCompanyNames(page);
+ return {print,companyNames,variants,mobile:{company:mobile.merchant.name,template:mobile.templateName},rapidClicksIgnored:true,previewPdfZipIdentical:true,conditionsPreserved:true,seedReproduced:true,iphoneWidth:390};
 }

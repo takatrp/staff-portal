@@ -11,7 +11,7 @@ export async function installTextInkProbe(page){
    const commands=page._demoPaint.filter(c=>c.op==='text');
    if(!commands.length||commands.some(c=>c.color.some(v=>v!==0)||c.opacity!==1))throw Error('Voucher text must be opaque RGB black');
    const samples=[],pick=(role,predicate)=>{const c=commands.find(predicate);if(!c)throw Error('Missing text sample '+role);samples.push({role,command:c});};
-   pick('merchant',c=>c.text===doc.merchant.name);
+   pick('merchant',c=>c.text===doc.merchant.name||(c.text.endsWith('…')&&doc.merchant.name.startsWith(c.text.slice(0,-1))));
    pick('tax',c=>c.text.includes('消費税'));
    pick('note',c=>c.text.startsWith('全件架空'));
    if(doc.receiptStyle==='handwritten'){
