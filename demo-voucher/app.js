@@ -1,7 +1,7 @@
 (function () {
 'use strict';
 const C=VoucherCore,P=VoucherPDF,$=id=>document.getElementById(id);
-const fields=['invoiceCount','receiptCount','startDate','endDate','taxMix','pricing','rounding','receiptStyle','handwriting','pdfMode','seed'];
+const fields=['invoiceCount','receiptCount','startDate','endDate','taxMix','pricing','rounding','receiptStyle','handwriting','pdfMode','issuerName','recipientName','seed'];
 const presets={handwritten:{invoiceCount:0,receiptCount:3,taxMix:'mixed',pricing:'inclusive',receiptStyle:'handwritten',handwriting:'auto',pdfMode:'image'},standard:{invoiceCount:10,receiptCount:10,taxMix:'varied',pricing:'varied',receiptStyle:'normal',pdfMode:'image'},mixed:{invoiceCount:5,receiptCount:5,taxMix:'mixed',pricing:'varied',receiptStyle:'normal',pdfMode:'image'},receipts:{invoiceCount:0,receiptCount:10,taxMix:'varied',pricing:'inclusive',receiptStyle:'normal',pdfMode:'image'}};
 let batch=null,selected=null,busy=false,previewUrl=null,previewTicket=0,generationTicket=0,randomNonce=0,variations=[];
 const printSelection=new Set();
@@ -91,6 +91,7 @@ async function generate(randomize=false){
   if(ticket!==generationTicket)return;
   batch=result.next;variations=batch.config.variations||[];if(!randomize)printSelection.clear();pdfCache.clear();selected=result.choice||batch.documents[0];printCount();
   $('seed').value=batch.config.seed;
+  for(const key of ['issuerName','recipientName'])$(key).value=batch.config[key];
   $('filter').value=randomize&&(filter==='all'||batch.documents.some(d=>d.type===filter))?filter:'all';
   list();
   $('resultSummary').textContent=batch.summary.count+'件 / 税込総額 ¥ '+C.yen(batch.summary.total)+' / 全件 検算OK';

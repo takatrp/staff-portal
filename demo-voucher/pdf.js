@@ -13,7 +13,7 @@ async function document(title,date){const doc=await g.PDFLib.PDFDocument.create(
 function painter(page,font,blackText=false){const H=page.getHeight(),W=page.getWidth(),commands=page._demoPaint||(page._demoPaint=[]);
 function rect(x,y,w,h,fill=light,border=null){page.drawRectangle({x,y:H-y-h,width:w,height:h,color:rgb(fill),...(border?{borderColor:rgb(border),borderWidth:.6}:{})});commands.push({op:'rect',x,y,w,h,fill,border});}
 function line(x,y,x2,y2,c=muted,width=.6,dash){page.drawLine({start:{x,y:H-y},end:{x:x2,y:H-y2},color:rgb(c),thickness:width,...(dash?{dashArray:dash}:{})});commands.push({op:'line',x,y,x2,y2,color:c,width,dash});}
-function text(value,x,y,size=10,c=ink,opts={}){if(blackText)c=black;let s=String(value),fs=size;const width=opts.width||W-x-8;while(font.widthOfTextAtSize(s,fs)>width&&fs>5)fs-=.25;let w=font.widthOfTextAtSize(s,fs);if(w>width){while(s.length&&font.widthOfTextAtSize(s+'…',fs)>width)s=s.slice(0,-1);s+='…';w=font.widthOfTextAtSize(s,fs);}const px=opts.align==='right'?x+width-w:opts.align==='center'?x+(width-w)/2:x,rotation=opts.rotation||0;page.drawText(s,{x:px,y:H-y-fs,font,size:fs,color:rgb(c),opacity:1,...(rotation?{rotate:g.PDFLib.degrees(rotation)}:{})});commands.push({op:'text',text:s,x:px,baseline:y+fs,size:fs,color:c,opacity:1,family:font._demoFamily||'DemoNotoJP',rotation});return fs;}
+function text(value,x,y,size=10,c=ink,opts={}){if(blackText)c=black;let s=String(value),fs=size;const width=opts.width||W-x-8;while(font.widthOfTextAtSize(s,fs)>width&&fs>5)fs-=.25;let w=font.widthOfTextAtSize(s,fs);if(w>width){const chars=Array.from(s);while(chars.length&&font.widthOfTextAtSize(chars.join('')+'…',fs)>width)chars.pop();s=chars.join('')+'…';w=font.widthOfTextAtSize(s,fs);}const px=opts.align==='right'?x+width-w:opts.align==='center'?x+(width-w)/2:x,rotation=opts.rotation||0;page.drawText(s,{x:px,y:H-y-fs,font,size:fs,color:rgb(c),opacity:1,...(rotation?{rotate:g.PDFLib.degrees(rotation)}:{})});commands.push({op:'text',text:s,x:px,baseline:y+fs,size:fs,color:c,opacity:1,family:font._demoFamily||'DemoNotoJP',rotation});return fs;}
 function center(s,y,size=10,c=ink,x=0,w=W){return text(s,x,y,size,c,{width:w,align:'center'});}
 function right(s,x,y,w,size=10,c=ink){return text(s,x,y,size,c,{width:w,align:'right'});}
 function circle(x,y,r,c){page.drawCircle({x,y:H-y,size:r,color:rgb(c)});commands.push({op:'circle',x,y,r,color:c});}
@@ -38,15 +38,15 @@ function money(n){return C().yen(n);}
 function disclaimer(p,y,small=false){const fs=small?6:7;p.center('全件架空・デモ専用 / 実取引・実在企業とは無関係',y,fs,muted);p.center('登録番号は無効なダミーです。実事業者照会は対象外。',y+11,fs,muted);}
 function invoice(d,font,doc){const page=doc.addPage([595.28,841.89]),p=blackPainter(page,font),a=color(d.merchant.color),m=42,w=p.W-84,k=d.template;let top=290;
 if(k===1){p.rect(0,0,18,p.H,a);p.text('INVOICE',m,34,10,a);p.text('請求書',m,55,30);logo(p,d.merchant.logo,493,36,48,a);}
-else if(k===2){p.rect(0,0,p.W,116,tint(a));p.rect(0,0,8,116,a);logo(p,d.merchant.logo,m,34,38,a);p.text(d.merchant.latin,m+52,35,17,white,{width:270});p.text('請求書',425,38,26,white);p.text(d.merchant.name,m+52,62,10,white,{width:290});top=310;}
+else if(k===2){p.rect(0,0,p.W,116,tint(a));p.rect(0,0,8,116,a);logo(p,d.merchant.logo,m,34,38,a);p.text(d.merchant.latin,m+52,35,17,white,{width:270});p.text('請求書',425,38,26,white);if(d.merchant.name!==d.merchant.latin)p.text(d.merchant.name,m+52,62,10,white,{width:290});top=310;}
 else if(k===3){p.text('請 求 書',m,34,27,a);p.line(m,77,p.W-m,77,a,2);logo(p,d.merchant.logo,495,31,37,a);top=266;}
-else if(k===4){p.rect(m,30,w,74,light);logo(p,d.merchant.logo,m+16,46,40,a);p.text(d.merchant.name,m+72,45,15,a,{width:400});p.text('請求書 / '+d.merchant.latin,m+72,69,10,muted);top=302;}
+else if(k===4){p.rect(m,30,w,74,light);logo(p,d.merchant.logo,m+16,46,40,a);p.text(d.merchant.name,m+72,45,15,a,{width:400});p.text('請求書'+(d.merchant.name===d.merchant.latin?'':' / '+d.merchant.latin),m+72,69,10,muted,{width:400});top=302;}
 else if(k===5){logo(p,d.merchant.logo,277,27,40,a);p.center('請 求 書',83,28,a);p.center(d.merchant.name,123,11);top=320;}
 else if(k===6){p.rect(m,28,w,7,a);p.text('請求書',m,54,30,a);logo(p,d.merchant.logo,495,50,40,a);top=282;}
 else if(k===7){p.rect(m,30,w,55,white,ink);p.center('請 求 書',40,26);logo(p,d.merchant.logo,m,101,30,ink);top=304;}
 else if(k===8){p.text('INVOICE',m,35,11,a);p.text('ご請求書',m,57,29);logo(p,d.merchant.logo,493,38,45,a);top=304;}
-else if(k===9){p.text(d.merchant.latin,m,35,21,a);p.text('請求書',425,37,25);p.line(m,87,p.W-m,87,a);logo(p,d.merchant.logo,270,35,28,a);top=298;}
-else{logo(p,d.merchant.logo,m,34,42,a);p.text(d.merchant.name,m+56,36,15,a,{width:360});p.text(d.merchant.latin,m+56,61,9,muted);p.right('請求書',410,36,143,25,a);}
+else if(k===9){p.text(d.merchant.latin,m,35,21,a,{width:210});p.text('請求書',425,37,25);p.line(m,87,p.W-m,87,a);logo(p,d.merchant.logo,270,35,28,a);top=298;}
+else{logo(p,d.merchant.logo,m,34,42,a);p.text(d.merchant.name,m+56,36,15,a,{width:d.merchant.name===d.merchant.latin?300:360});if(d.merchant.name!==d.merchant.latin)p.text(d.merchant.latin,m+56,61,9,muted);p.right('請求書',410,36,143,25,a);}
 const infoY=k===5?156:k===2?135:k===7?149:120;
 p.text(d.buyer,m,infoY,15,ink,{width:285});p.line(m,infoY+26,m+284,infoY+26,a);
 p.text('下記のとおりご請求申し上げます。',m,infoY+38,10,muted);
@@ -68,13 +68,13 @@ p.text('* は軽減税率対象（持帰りの飲食料品）',m,ty,8,muted);
 p.text('税率別集計 / '+roundLabel(d.rounding)+'・税率ごとに1回',m,ty+19,8,muted);
 d.totals.groups.filter(x=>x.amount).forEach((t,i)=>{p.text(t.rate+'%対象 '+(d.pricing==='inclusive'?'税込':'税抜')+' '+money(t.amount)+'円',m,ty+41+i*19,9);p.text((d.pricing==='inclusive'?'うち':'消費税')+' '+money(t.tax)+'円',m+201,ty+41+i*19,9);});
 let sy=ty+33;p.right('税抜合計  '+money(d.totals.net)+' 円',350,sy,194,10);p.right('消費税合計  '+money(d.totals.tax)+' 円',350,sy+21,194,10);p.line(350,sy+43,544,sy+43,a);p.right('合計  '+money(d.totals.gross)+' 円',350,sy+49,194,15,a);
-p.line(m,730,p.W-m,730,light);p.text(d.merchant.name,m,744,10,a);p.text(d.merchant.address,m,761,8,muted);p.text('登録番号 '+C().DUMMY+'（無効なダミー）',m,776,8,muted);
+p.line(m,730,p.W-m,730,light);p.text(d.merchant.name,m,744,10,a,{width:277});p.text(d.merchant.address,m,761,8,muted);p.text('登録番号 '+C().DUMMY+'（無効なダミー）',m,776,8,muted);
 p.right('振込先：デモ用のため記載省略',333,748,220,8,muted);p.right('様式：'+d.templateName,333,765,220,8,muted);
 disclaimer(p,803);return page;}
 function receipt(d,font,doc){const k=d.template,{width:w,height:h}=pageSize(d);const page=doc.addPage([w,h]),p=blackPainter(page,font),m=10,inner=w-2*m,a=k===8?ink:color(d.merchant.color);
 if(k===3||k===7){p.rect(m,15,inner,88,light);logo(p,d.merchant.logo,w/2-15,22,30,a);p.center(d.merchant.name,61,12,a,m+4,inner-8);}
-else if(k===1||k===6){logo(p,d.merchant.logo,w/2-18,18,36,a);p.center(d.merchant.latin,62,13,a);p.center(d.merchant.name,85,11);}
-else{logo(p,d.merchant.logo,m,21,27,a);p.text(d.merchant.latin,m+38,20,12,a,{width:inner-39});p.text('領収書 / レシート',m+38,40,10);p.center(d.merchant.name,77,12,a);}
+else if(k===1||k===6){logo(p,d.merchant.logo,w/2-18,18,36,a);p.center(d.merchant.latin,62,13,a,m,inner);if(d.merchant.name!==d.merchant.latin)p.center(d.merchant.name,85,11);}
+else{logo(p,d.merchant.logo,m,21,27,a);if(d.merchant.name!==d.merchant.latin)p.text(d.merchant.latin,m+38,20,12,a,{width:inner-39});p.text('領収書 / レシート',m+38,40,10);p.center(d.merchant.name,77,12,a,m,inner);}
 p.center(d.merchant.address,110,7);p.center(d.date+' '+d.time+' / '+d.id,126,8);
 p.center('登録番号 '+C().DUMMY+'（ダミー）',141,7,muted);
 const rule=y=>{p.line(m,y,w-m,y,k===2?ink:muted,k===2?1.5:.7,k===0||k===5?[2,2]:undefined);if(k===4)p.line(m,y+3,w-m,y+3,muted,.5);};
