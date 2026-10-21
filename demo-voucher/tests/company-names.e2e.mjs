@@ -30,11 +30,12 @@ export async function verifyCompanyNames(page,{outputDir=process.env.COMPANY_OUT
   const rejectedPdfNames=await page.evaluate(async names=>{
    const config={startDate:'2026-10-01',endDate:'2026-10-01',...names},results=[];
    for(const pdfMode of ['image','text']){
-    for(const field of ['issuer','recipient']){const d=VoucherCore.generate({...config,invoiceCount:1,receiptCount:0,pdfMode}).documents[0];if(field==='issuer')d.merchant.name='架空😀商事';else d.buyer='宛先🚀株式会社';try{await VoucherPDF.voucher(d);results.push({rejected:false});}catch(e){results.push({rejected:/U\+1F(600|680)/.test(e.message),field,pdfMode});}}
+    for(const field of ['issuer','recipient','latin']){const d=VoucherCore.generate({...config,invoiceCount:1,receiptCount:0,pdfMode}).documents[0];if(field==='issuer')d.merchant.name='架空😀商事';else if(field==='latin')d.merchant.latin='DEMO😀';else d.buyer='宛先🚀株式会社';try{await VoucherPDF.voucher(d);results.push({rejected:false});}catch(e){results.push({rejected:/U\+1F(600|680)/.test(e.message),field,pdfMode});}}
     const d=VoucherCore.generate({...config,invoiceCount:0,receiptCount:3,receiptStyle:'handwritten',handwriting:'scrawl',pdfMode}).documents[0];d.buyer='宛先😀株式会社';try{await VoucherPDF.voucher(d);results.push({rejected:false});}catch(e){results.push({rejected:e.message.includes('U+1F600'),field:'handwritten recipient',pdfMode});}
+    const receipt=VoucherCore.generate({...config,invoiceCount:0,receiptCount:10,pdfMode}).documents.find(d=>[1,6].includes(d.template));receipt.merchant.latin='DEMO😀';try{await VoucherPDF.voucher(receipt);results.push({rejected:false});}catch(e){results.push({rejected:e.message.includes('U+1F600'),field:'receipt latin',pdfMode});}
    }return results;
   },names);
-  assert.equal(rejectedPdfNames.length,6);assert.ok(rejectedPdfNames.every(r=>r.rejected));await submit(page);
+  assert.equal(rejectedPdfNames.length,10);assert.ok(rejectedPdfNames.every(r=>r.rejected));await submit(page);
   for(const mode of ['both','company','amount']){
    await page.locator('#randomMode').selectOption(mode);await page.locator('#regenerate').click();await ready(page);
    const d=await page.evaluate(()=>window.__companyNames.current);assert.equal(d.merchant.name,names.issuerName);assert.equal(d.buyer,names.recipientName);

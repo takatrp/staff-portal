@@ -11,7 +11,7 @@ function fixedDate(d){return new Date(d+'T12:00:00Z');}
 function pageSize(d){return d.type==='invoice'?{width:595.28,height:841.89}:d.receiptStyle==='handwritten'?{width:595.28,height:365}:{width:58*72/25.4,height:490+d.items.length*35+(d.template===9?60:0)};}
 async function document(title,date){const doc=await g.PDFLib.PDFDocument.create();doc.registerFontkit(g.fontkit);doc.setTitle(title+' / 全件架空・研修用');doc.setAuthor('Demo Voucher Studio');doc.setCreator('Demo Voucher Studio '+C().VERSION);doc.setProducer('pdf-lib / embedded Noto Sans JP');doc.setCreationDate(fixedDate(date));doc.setModificationDate(fixedDate(date));const font=await doc.embedFont(bytes(),{subset:true});font._demoFamily='DemoNotoJP';if(!baseCharacters)baseCharacters=new Set(font.getCharacterSet());return{doc,font};}
 async function validateCompanyNames(input={}){
- const names=[['発行元',input.issuerName],['宛先',input.recipientName]].filter(([,value])=>value);
+ const names=[['発行元',input.issuerName],['発行元（英字表記）',input.issuerLatinName],['宛先',input.recipientName]].filter(([,value])=>value);
  if(!names.length)return true;
  if(!baseCharacters){const doc=await g.PDFLib.PDFDocument.create();doc.registerFontkit(g.fontkit);const font=await doc.embedFont(bytes(),{subset:true});baseCharacters=new Set(font.getCharacterSet());}
  for(const [label,value] of names){const missing=[...new Set(Array.from(value).filter(ch=>!baseCharacters.has(ch.codePointAt(0))))];
@@ -95,7 +95,7 @@ d.totals.groups.filter(t=>t.amount).forEach(t=>{p.text(t.rate+'%対象'+(d.prici
 p.text(d.payment,m,y+2,8);p.right(money(d.tender)+'円',m+90,y+2,inner-90,8);p.text('お釣り',m,y+19,8);p.right(money(d.change)+'円',m+90,y+19,inner-90,8);y+=43;rule(y);y+=13;p.center('* 軽減税率対象（持帰り食品）',y,7,muted);p.center(roundLabel(d.rounding)+' / 税率ごとに1回計算',y+15,7,muted);
 if(k===5){p.line(m,y+37,w-m,y+37,muted,.7,[3,2]);p.center('THANK YOU / DEMO ONLY',y+47,10,a);}else p.center('ありがとうございました',y+42,9,a);
 disclaimer(p,h-34,true);return page;}
-async function voucher(d){C().assertDoc(d);const {doc,font}=await document(d.id,d.date);await validateCompanyNames({issuerName:d.merchant.name,recipientName:d.type==='invoice'||d.receiptStyle==='handwritten'?d.buyer:''});const page=d.receiptStyle==='handwritten'?await g.VoucherArtwork.handReceipt(d,doc,font,blackPainter,logo):(d.type==='invoice'?invoice:receipt)(d,font,doc);
+async function voucher(d){C().assertDoc(d);const {doc,font}=await document(d.id,d.date);await validateCompanyNames({issuerName:d.merchant.name,issuerLatinName:d.merchant.latin,recipientName:d.type==='invoice'||d.receiptStyle==='handwritten'?d.buyer:''});const page=d.receiptStyle==='handwritten'?await g.VoucherArtwork.handReceipt(d,doc,font,blackPainter,logo):(d.type==='invoice'?invoice:receipt)(d,font,doc);
  if(d.pdfMode==='image'){const png=await g.VoucherArtwork.raster(page),out=await g.PDFLib.PDFDocument.create();
   // A single opaque RGB image, lossless Flate compression and classic xref tables.
   out.setTitle(d.id+' / DEMO IMAGE ONLY');out.setAuthor('Demo Voucher Studio');out.setCreator('Demo Voucher Studio '+C().VERSION);out.setCreationDate(fixedDate(d.date));out.setModificationDate(fixedDate(d.date));const image=await out.embedPng(png),imagePage=out.addPage([page.getWidth(),page.getHeight()]);imagePage.drawImage(image,{x:0,y:0,width:page.getWidth(),height:page.getHeight()});const saved=await out.save({useObjectStreams:false});
