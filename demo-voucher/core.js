@@ -1,6 +1,6 @@
 /* Demo Voucher Studio - deterministic model, integer tax math, UTF-8 CSV/ZIP. */
 (function(g){'use strict';
-const VERSION='1.3.0',DUMMY='T0000000000000';
+const VERSION='1.4.0',DUMMY='T0000000000000';
 const templates=['クラシック罫線','左サイドバー','ネイビーヘッダー','明細優先','二段組み','中央見出し','グリーン帯','モノクロ帳票','カード型合計','余白のある便箋'];
 const receiptTemplates=['サーマル標準','センターロゴ','太罫線','店舗カード','二重罫線','クーポン風','カフェ伝票','角丸見出し','モノクロ明細','ロングレシート'];
 const brands=[
@@ -42,6 +42,11 @@ if(c.variations!==undefined){
   ids.add(v.id);const value={id:v.id};for(const key of ['companySeed','amountSeed'])if(v[key]!==undefined){if(typeof v[key]!=='string'||!v[key]||v[key].length>80)throw Error('ランダム変更のseedが正しくありません。');value[key]=v[key];}return value;
  });
 }return c;}
+function importConfig(input){
+ if(!input||typeof input!=='object'||Array.isArray(input))throw Error('生成条件JSONはオブジェクトで指定してください。');
+ if(input.version!==undefined&&![VERSION,'1.3.0'].includes(input.version))throw Error('バージョンが異なるため、同一結果は保証できません。対応する版を使用してください。');
+ const {version,...values}=input;return config(values);
+}
 function divide(n,d,method){if(!Number.isSafeInteger(n)||n<0||!Number.isSafeInteger(d)||d<=0)throw Error('金額が範囲外です。');const q=Math.floor(n/d),r=n%d;return q+(method==='ceil'?Number(r>0):method==='round'?Number(r*2>=d):0);}
 function totals(items,pricing,rounding){const groups=[8,10].map(rate=>{const amount=items.filter(x=>x.rate===rate).reduce((s,x)=>s+x.quantity*x.unitPrice,0);const tax=divide(amount*rate,pricing==='inclusive'?100+rate:100,rounding);const net=pricing==='inclusive'?amount-tax:amount;return{rate,amount,net,tax,gross:net+tax};});return{groups,net:groups.reduce((s,x)=>s+x.net,0),tax:groups.reduce((s,x)=>s+x.tax,0),gross:groups.reduce((s,x)=>s+x.gross,0)};}
 function plusDays(d,n){return new Date(day(d)+n*86400000).toISOString().slice(0,10);}
@@ -84,5 +89,5 @@ function zip(entries){const chunks=[],central=[];let pos=0;const block=(size,fil
 const local=block(30,v=>{v.setUint32(0,0x04034b50,true);v.setUint16(4,20,true);v.setUint16(6,0x800,true);v.setUint16(12,33,true);v.setUint32(14,crc,true);v.setUint32(18,data.length,true);v.setUint32(22,data.length,true);v.setUint16(26,name.length,true);});chunks.push(local,name,data);
 central.push(block(46,v=>{v.setUint32(0,0x02014b50,true);v.setUint16(4,20,true);v.setUint16(6,20,true);v.setUint16(8,0x800,true);v.setUint16(14,33,true);v.setUint32(16,crc,true);v.setUint32(20,data.length,true);v.setUint32(24,data.length,true);v.setUint16(28,name.length,true);v.setUint32(42,pos,true);}),name);pos+=30+name.length+data.length;}
 const len=central.reduce((s,a)=>s+a.length,0);chunks.push(...central,block(22,v=>{v.setUint32(0,0x06054b50,true);v.setUint16(8,entries.length,true);v.setUint16(10,entries.length,true);v.setUint32(12,len,true);v.setUint32(16,pos,true);}));const out=new Uint8Array(chunks.reduce((s,a)=>s+a.length,0));let at=0;for(const a of chunks){out.set(a,at);at+=a.length;}return out;}
-const api={VERSION,DUMMY,templates,receiptTemplates,brands,defaultDateRange,config,generate,randomize,totals,divide,assertDoc,csv,zip,crc32,yen};if(typeof module!=='undefined')module.exports=api;g.VoucherCore=api;
+const api={VERSION,DUMMY,templates,receiptTemplates,brands,defaultDateRange,config,importConfig,generate,randomize,totals,divide,assertDoc,csv,zip,crc32,yen};if(typeof module!=='undefined')module.exports=api;g.VoucherCore=api;
 })(globalThis);

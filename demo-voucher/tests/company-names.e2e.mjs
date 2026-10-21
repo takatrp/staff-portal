@@ -9,7 +9,7 @@ async function submit(page){await page.getByRole('button',{name:'この条件で
 
 export async function verifyCompanyNames(page,{outputDir=process.env.COMPANY_OUTPUT_DIR}={}){
  if(outputDir)await mkdir(outputDir,{recursive:true});
- await page.evaluate(()=>{const original=VoucherPDF.voucher,create=URL.createObjectURL.bind(URL);window.__companyNames={current:null,blobs:new Map()};URL.createObjectURL=blob=>{const url=create(blob);window.__companyNames.blobs.set(url,blob);return url;};VoucherPDF.voucher=async doc=>{window.__companyNames.current=structuredClone(doc);return original(doc);};window.__companyNames.restore=()=>{VoucherPDF.voucher=original;URL.createObjectURL=create;};});
+ await page.evaluate(()=>{const original=VoucherPDF.voucher,create=URL.createObjectURL.bind(URL);window.__companyNames={current:null,calls:0,blobs:new Map()};URL.createObjectURL=blob=>{const url=create(blob);window.__companyNames.blobs.set(url,blob);return url;};VoucherPDF.voucher=async doc=>{window.__companyNames.calls++;window.__companyNames.current=structuredClone(doc);return original(doc);};window.__companyNames.restore=()=>{VoucherPDF.voucher=original;URL.createObjectURL=create;};});
  const records=[];
  try{
   await page.setViewportSize({width:1440,height:1100});
@@ -19,6 +19,22 @@ export async function verifyCompanyNames(page,{outputDir=process.env.COMPANY_OUT
   assert.equal(await page.locator('#documentList .doc-info strong').first().textContent(),names.issuerName);
   assert.equal(await page.locator('#documentList img, #documentList script').count(),0,'names are text nodes');
   assert.equal(await page.evaluate(()=>window.__companyNames.current.buyer),names.recipientName);
+  for(const [key,value,code] of [['issuerName','架空😀商事','U+1F600'],['recipientName','宛先🚀株式会社','U+1F680']]){
+   const before=await page.evaluate(()=>({calls:window.__companyNames.calls,url:document.getElementById('pdfPreview').href}));
+   await page.locator('#'+key).fill(value);await submit(page);
+   assert.equal(await page.locator('#error').isVisible(),true);assert.ok((await page.locator('#error').textContent()).includes(code));
+   assert.deepEqual(await page.evaluate(()=>({calls:window.__companyNames.calls,url:document.getElementById('pdfPreview').href})),before,'unsupported input cannot replace or generate a PDF');
+   if(outputDir&&key==='issuerName')await page.screenshot({path:outputDir+'/unsupported-name-error.png',fullPage:true});
+   await page.locator('#'+key).fill(names[key]);
+  }
+  const rejectedPdfNames=await page.evaluate(async names=>{
+   const config={startDate:'2026-10-01',endDate:'2026-10-01',...names},results=[];
+   for(const pdfMode of ['image','text']){
+    for(const field of ['issuer','recipient']){const d=VoucherCore.generate({...config,invoiceCount:1,receiptCount:0,pdfMode}).documents[0];if(field==='issuer')d.merchant.name='架空😀商事';else d.buyer='宛先🚀株式会社';try{await VoucherPDF.voucher(d);results.push({rejected:false});}catch(e){results.push({rejected:/U\+1F(600|680)/.test(e.message),field,pdfMode});}}
+    const d=VoucherCore.generate({...config,invoiceCount:0,receiptCount:3,receiptStyle:'handwritten',handwriting:'scrawl',pdfMode}).documents[0];d.buyer='宛先😀株式会社';try{await VoucherPDF.voucher(d);results.push({rejected:false});}catch(e){results.push({rejected:e.message.includes('U+1F600'),field:'handwritten recipient',pdfMode});}
+   }return results;
+  },names);
+  assert.equal(rejectedPdfNames.length,6);assert.ok(rejectedPdfNames.every(r=>r.rejected));await submit(page);
   for(const mode of ['both','company','amount']){
    await page.locator('#randomMode').selectOption(mode);await page.locator('#regenerate').click();await ready(page);
    const d=await page.evaluate(()=>window.__companyNames.current);assert.equal(d.merchant.name,names.issuerName);assert.equal(d.buyer,names.recipientName);
@@ -27,12 +43,15 @@ export async function verifyCompanyNames(page,{outputDir=process.env.COMPANY_OUT
   const waitPdf=page.waitForEvent('download');await page.locator('#downloadPdf').click();assert.deepEqual(await readFile(await(await waitPdf).path()),previewBytes,'download is the displayed PDF');
   const waitZip=page.waitForEvent('download');await page.locator('#downloadZip').click();const entries=storedZip(await readFile(await(await waitZip).path()));await ready(page);
   const config=JSON.parse(entries.get('02_照合用_投入禁止/生成条件.json').toString('utf8')),batch=JSON.parse(entries.get('02_照合用_投入禁止/全明細.json').toString('utf8'));
+  const currentVersion=await page.evaluate(()=>VoucherCore.VERSION);assert.equal(config.version,currentVersion);assert.notEqual(config.version,'1.3.0','old app must reject new company-name exports');
   for(const key of Object.keys(names))assert.equal(config[key],names[key]);
   assert.deepEqual(entries.get('01_投入用/'+batch.documents[0].filename),previewBytes,'ZIP preserves preview PDF');
   await page.locator('#issuerName').fill('');await page.locator('#recipientName').fill('');await submit(page);assert.notEqual(await page.evaluate(()=>window.__companyNames.current.merchant.name),names.issuerName);
   await page.locator('#importConfig').setInputFiles({name:'company-settings.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(config))});await ready(page);
   for(const key of Object.keys(names))assert.equal(await page.locator('#'+key).inputValue(),names[key]);
   assert.equal(await page.evaluate(()=>window.__companyNames.current.merchant.name),names.issuerName);
+  const canonicalVersion=await page.evaluate(async names=>{const batch=VoucherCore.generate({version:'1.3.0',...names,startDate:'2026-10-01',endDate:'2026-10-01',invoiceCount:1,receiptCount:0});const result=await VoucherPDF.build(batch);return JSON.parse(result.entries.find(e=>e.name.endsWith('/生成条件.json')).data).version;},names);
+  assert.equal(canonicalVersion,currentVersion,'stale config metadata cannot override the exported version');
   for(const preset of ['handwritten','mixed','receipts','standard']){await page.locator('[data-preset="'+preset+'"]').click();await ready(page);for(const key of Object.keys(names))assert.equal(await page.locator('#'+key).inputValue(),names[key]);}
   if(outputDir)await page.screenshot({path:outputDir+'/ui-desktop.png',fullPage:true});
   await page.setViewportSize({width:390,height:844});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'company fields fit mobile width');
@@ -73,11 +92,12 @@ export async function verifyCompanyNames(page,{outputDir=process.env.COMPANY_OUT
    const bytes=Buffer.from(result.bytes),info=result.pdfMode==='image'?await inspectImagePdf(bytes,{pixelHash:result.pixelHash}):{vectorText:await inspectVectorTextInk(bytes)};
    const ink=result.pdfMode==='image'?await inspectTextInk(bytes,result.probe):null;records.push({id,pdfMode:result.pdfMode,...info,ink,layout:result.layout});
    if(outputDir){await writeFile(outputDir+'/'+id+'.pdf',bytes);await writeFile(outputDir+'/'+id+'.png',Buffer.from(result.png.split(',')[1],'base64'));}
+   if((index+1)%10===0||index+1===ids.length)console.log('COMPANY_PDF_CASES',JSON.stringify({done:index+1,total:ids.length}));
   }
-  const {issuerName,recipientName,...legacy}=config;await page.locator('#importConfig').setInputFiles({name:'legacy.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(legacy))});await ready(page);
+  const {issuerName,recipientName,...legacy}=config;legacy.version='1.3.0';await page.locator('#importConfig').setInputFiles({name:'legacy.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(legacy))});await ready(page);
   assert.equal(await page.locator('#issuerName').inputValue(),'');assert.equal(await page.locator('#recipientName').inputValue(),'');
   await page.locator('[data-preset="standard"]').click();await ready(page);
   if(outputDir)await writeFile(outputDir+'/measurements.json',JSON.stringify(records,null,2));
-  return{cases:records.length,imagePdfs:records.filter(r=>r.pdfMode==='image').length,textPdfs:records.filter(r=>r.pdfMode==='text').length,blackCorePixels:records.reduce((n,r)=>n+(r.ink?.corePixels||0),0),uiLiteralText:true,noHtmlInjection:true,previewDownloadZipIdentical:true,jsonAndLegacyImport:true,presetsAndRandomModesPreserveNames:true,mobileWidth:390,recipientAbsentFromNormalReceipts:true};
+  return{cases:records.length,imagePdfs:records.filter(r=>r.pdfMode==='image').length,textPdfs:records.filter(r=>r.pdfMode==='text').length,blackCorePixels:records.reduce((n,r)=>n+(r.ink?.corePixels||0),0),unsupportedInputCasesRejected:2,unsupportedPdfCasesRejected:rejectedPdfNames.length,configVersion:currentVersion,canonicalExportVersion:true,legacy130Import:true,uiLiteralText:true,noHtmlInjection:true,previewDownloadZipIdentical:true,jsonAndLegacyImport:true,presetsAndRandomModesPreserveNames:true,mobileWidth:390,recipientAbsentFromNormalReceipts:true};
  }finally{await page.evaluate(()=>window.__companyNames.restore());}
 }

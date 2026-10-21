@@ -37,3 +37,15 @@ test('指定社名を含むCSVも引用・式注入対策を維持し、社名�
  assert.ok(csv.includes('"\'=HYPERLINK(""<デモ>&/../x"")"'));assert.ok(b.documents.every(d=>!d.filename.includes(issuerName)&&!d.filename.includes('..')));
  assert.equal(C.config(JSON.parse(JSON.stringify(b.config))).issuerName,issuerName);
 });
+test('社名対応の設定は旧版と区別し、1.3.0の既存設定を条件・社名を保って読み込む',()=>{
+ assert.notEqual(C.VERSION,'1.3.0');
+ for(const version of [undefined,'1.3.0',C.VERSION]){
+  const input={...conditions,...names,...(version?{version}:{})},loaded=C.importConfig(input);
+  assert.equal(loaded.version,undefined);assert.deepEqual(C.generate(loaded).documents,C.generate({...conditions,...names}).documents);
+ }
+ const legacy=C.importConfig({...conditions,version:'1.3.0'});assert.equal(legacy.issuerName,'');assert.equal(legacy.recipientName,'');
+});
+test('未知の設定バージョンと不正なJSONの形を読み込まない',()=>{
+ for(const version of ['1.2.0','99.0.0',0,null,{},[]])assert.throws(()=>C.importConfig({...conditions,version}));
+ for(const value of [null,[],12,'text'])assert.throws(()=>C.importConfig(value));
+});
