@@ -87,6 +87,7 @@ async function generate(randomize=false){
  state(true,randomize?'選択した社名・金額を変更しています…':'証憑を生成しています…');
  try{
   const config=C.config(read());
+  await P.validateCompanyNames(config);
   const result=randomize?randomBatch(previous):{next:C.generate(config)};
   if(ticket!==generationTicket)return;
   batch=result.next;variations=batch.config.variations||[];if(!randomize)printSelection.clear();pdfCache.clear();selected=result.choice||batch.documents[0];printCount();
@@ -157,8 +158,7 @@ $('importConfig').addEventListener('change',async e=>{
   const file=e.target.files[0];if(!file)return;
   if(file.size>20000)throw Error('生成条件JSONは20KB以下で指定してください。');
   const config=JSON.parse(await file.text());if(busy)return;
-  if(config.version&&config.version!==C.VERSION)throw Error('バージョンが異なるため、同一結果は保証できません。対応する版を使用してください。');
-  set(C.config(config));await generate();
+  set(C.importConfig(config));await generate();
  }catch(e){error(e);}finally{e.target.value='';}
 });
 $('receiptStyle').addEventListener('change',appearance);

@@ -1,7 +1,7 @@
 /* Local PDF renderer: embedded fonts or an image-only page; no external requests. */
 (function(g){'use strict';
 const C=()=>g.VoucherCore,black=[0,0,0],white=[1,1,1],ink=[.12,.16,.19],muted=[.40,.45,.48],light=[.93,.95,.95];
-let fontBytes;const previewPages=new WeakMap(),previewImages=new WeakMap();
+let fontBytes,baseCharacters;const previewPages=new WeakMap(),previewImages=new WeakMap();
 function bytes(){if(!fontBytes){const s=atob(g.DEMO_FONT_BASE64);fontBytes=Uint8Array.from(s,c=>c.charCodeAt(0));}return fontBytes;}
 function rgb(a){return g.PDFLib.rgb(...a);}function color(hex){return hex.match(/[a-f0-9]{2}/gi).map(x=>parseInt(x,16)/255);}
 function tint(c){return c.map(v=>.94+.06*v);}
@@ -9,7 +9,15 @@ function fixedDate(d){return new Date(d+'T12:00:00Z');}
 // Physical page sizes in PDF points (72 pt = 25.4 mm).
 // Normal templates use a 58 mm roll; body type sizes and item-dependent lengths stay fixed.
 function pageSize(d){return d.type==='invoice'?{width:595.28,height:841.89}:d.receiptStyle==='handwritten'?{width:595.28,height:365}:{width:58*72/25.4,height:490+d.items.length*35+(d.template===9?60:0)};}
-async function document(title,date){const doc=await g.PDFLib.PDFDocument.create();doc.registerFontkit(g.fontkit);doc.setTitle(title+' / 全件架空・研修用');doc.setAuthor('Demo Voucher Studio');doc.setCreator('Demo Voucher Studio '+C().VERSION);doc.setProducer('pdf-lib / embedded Noto Sans JP');doc.setCreationDate(fixedDate(date));doc.setModificationDate(fixedDate(date));const font=await doc.embedFont(bytes(),{subset:true});font._demoFamily='DemoNotoJP';return{doc,font};}
+async function document(title,date){const doc=await g.PDFLib.PDFDocument.create();doc.registerFontkit(g.fontkit);doc.setTitle(title+' / 全件架空・研修用');doc.setAuthor('Demo Voucher Studio');doc.setCreator('Demo Voucher Studio '+C().VERSION);doc.setProducer('pdf-lib / embedded Noto Sans JP');doc.setCreationDate(fixedDate(date));doc.setModificationDate(fixedDate(date));const font=await doc.embedFont(bytes(),{subset:true});font._demoFamily='DemoNotoJP';if(!baseCharacters)baseCharacters=new Set(font.getCharacterSet());return{doc,font};}
+async function validateCompanyNames(input={}){
+ const names=[['発行元',input.issuerName],['発行元（英字表記）',input.issuerLatinName],['宛先',input.recipientName]].filter(([,value])=>value);
+ if(!names.length)return true;
+ if(!baseCharacters){const doc=await g.PDFLib.PDFDocument.create();doc.registerFontkit(g.fontkit);const font=await doc.embedFont(bytes(),{subset:true});baseCharacters=new Set(font.getCharacterSet());}
+ for(const [label,value] of names){const missing=[...new Set(Array.from(value).filter(ch=>!baseCharacters.has(ch.codePointAt(0))))];
+  if(missing.length){const detail=missing.slice(0,5).map(ch=>ch+'（U+'+ch.codePointAt(0).toString(16).toUpperCase().padStart(4,'0')+'）').join('、');throw Error(label+'の社名にPDFで表示できない文字があります：'+detail+(missing.length>5?' ほか'+(missing.length-5)+'文字':'')+'。別の文字に置き換えてください。');}
+ }return true;
+}
 function painter(page,font,blackText=false){const H=page.getHeight(),W=page.getWidth(),commands=page._demoPaint||(page._demoPaint=[]);
 function rect(x,y,w,h,fill=light,border=null){page.drawRectangle({x,y:H-y-h,width:w,height:h,color:rgb(fill),...(border?{borderColor:rgb(border),borderWidth:.6}:{})});commands.push({op:'rect',x,y,w,h,fill,border});}
 function line(x,y,x2,y2,c=muted,width=.6,dash){page.drawLine({start:{x,y:H-y},end:{x:x2,y:H-y2},color:rgb(c),thickness:width,...(dash?{dashArray:dash}:{})});commands.push({op:'line',x,y,x2,y2,color:c,width,dash});}
@@ -87,7 +95,7 @@ d.totals.groups.filter(t=>t.amount).forEach(t=>{p.text(t.rate+'%対象'+(d.prici
 p.text(d.payment,m,y+2,8);p.right(money(d.tender)+'円',m+90,y+2,inner-90,8);p.text('お釣り',m,y+19,8);p.right(money(d.change)+'円',m+90,y+19,inner-90,8);y+=43;rule(y);y+=13;p.center('* 軽減税率対象（持帰り食品）',y,7,muted);p.center(roundLabel(d.rounding)+' / 税率ごとに1回計算',y+15,7,muted);
 if(k===5){p.line(m,y+37,w-m,y+37,muted,.7,[3,2]);p.center('THANK YOU / DEMO ONLY',y+47,10,a);}else p.center('ありがとうございました',y+42,9,a);
 disclaimer(p,h-34,true);return page;}
-async function voucher(d){C().assertDoc(d);const {doc,font}=await document(d.id,d.date);const page=d.receiptStyle==='handwritten'?await g.VoucherArtwork.handReceipt(d,doc,font,blackPainter,logo):(d.type==='invoice'?invoice:receipt)(d,font,doc);
+async function voucher(d){C().assertDoc(d);const {doc,font}=await document(d.id,d.date);await validateCompanyNames({issuerName:d.merchant.name,issuerLatinName:d.merchant.latin,recipientName:d.type==='invoice'||d.receiptStyle==='handwritten'?d.buyer:''});const page=d.receiptStyle==='handwritten'?await g.VoucherArtwork.handReceipt(d,doc,font,blackPainter,logo):(d.type==='invoice'?invoice:receipt)(d,font,doc);
  if(d.pdfMode==='image'){const png=await g.VoucherArtwork.raster(page),out=await g.PDFLib.PDFDocument.create();
   // A single opaque RGB image, lossless Flate compression and classic xref tables.
   out.setTitle(d.id+' / DEMO IMAGE ONLY');out.setAuthor('Demo Voucher Studio');out.setCreator('Demo Voucher Studio '+C().VERSION);out.setCreationDate(fixedDate(d.date));out.setModificationDate(fixedDate(d.date));const image=await out.embedPng(png),imagePage=out.addPage([page.getWidth(),page.getHeight()]);imagePage.drawImage(image,{x:0,y:0,width:page.getWidth(),height:page.getHeight()});const saved=await out.save({useObjectStreams:false});
@@ -105,7 +113,7 @@ return doc.save({useObjectStreams:false});}
 async function booklet(pdfs){const out=await g.PDFLib.PDFDocument.create();out.setTitle('全件見本 / 投入禁止');out.setCreationDate(fixedDate('2000-01-01'));out.setModificationDate(fixedDate('2000-01-01'));for(const bytes of pdfs){const src=await g.PDFLib.PDFDocument.load(bytes,{updateMetadata:false});for(const p of await out.copyPages(src,src.getPageIndices()))out.addPage(p);}return out.save({useObjectStreams:false});}
 function readme(batch){return '架空証憑デモセット / Demo Voucher Studio '+C().VERSION+'\r\n\r\n01_投入用 : 1証憑1PDF。このフォルダ内のPDFのみを投入してください。\r\n02_照合用_投入禁止 : 期待値CSV・一覧PDF・生成条件。会計ソフトへ投入しないでください。\r\n03_見本_投入禁止 : 全件見本PDF。各証憑と重複するため投入禁止。\r\n\r\n全件架空。企業・店舗・ロゴ・住所・取引はデモ用です。\r\n登録番号 T0000000000000 は無効なダミー。実事業者照会は対象外です。\r\n口座情報は記載していません。\r\n\r\n税率は10%/軽減8%の研修シナリオに固定。実務・税率改正対応用ではありません。\r\n税額は証憑ごと税率別に合算して1回だけ端数処理。\r\n外税=税抜合計×税率、内税=税込合計×税率/(100+税率)。\r\nCSVの税抜金額は、内税の場合「税込対象金額-税額」です。\r\n\r\nseed: '+batch.config.seed+'\r\n再現には同一バージョンと生成条件JSONを使用してください。\r\n';}
 async function build(batch,onProgress=()=>{},options={}){const pdfs=[],entries=[];for(let i=0;i<batch.documents.length;i++){const d=batch.documents[i];pdfs.push(await voucher(d));entries.push({name:'01_投入用/'+d.filename,data:pdfs[i]});onProgress(i+1,batch.documents.length);await new Promise(r=>setTimeout(r,0));}
-if(!options.proofsOnly){entries.push({name:'02_照合用_投入禁止/期待値.csv',data:C().csv(batch)},{name:'02_照合用_投入禁止/照合一覧.pdf',data:await summary(batch)},{name:'02_照合用_投入禁止/生成条件.json',data:JSON.stringify({version:batch.version,...batch.config},null,2)},{name:'02_照合用_投入禁止/全明細.json',data:JSON.stringify(batch,null,2)},{name:'03_見本_投入禁止/全件見本.pdf',data:await booklet(pdfs)},{name:'最初にお読みください.txt',data:readme(batch)});}
+if(!options.proofsOnly){entries.push({name:'02_照合用_投入禁止/期待値.csv',data:C().csv(batch)},{name:'02_照合用_投入禁止/照合一覧.pdf',data:await summary(batch)},{name:'02_照合用_投入禁止/生成条件.json',data:JSON.stringify({...batch.config,version:batch.version},null,2)},{name:'02_照合用_投入禁止/全明細.json',data:JSON.stringify(batch,null,2)},{name:'03_見本_投入禁止/全件見本.pdf',data:await booklet(pdfs)},{name:'最初にお読みください.txt',data:readme(batch)});}
 return{entries,pdfs,zip:C().zip(entries)};}
-g.VoucherPDF={voucher,previewFor,pageSize,summary,booklet,build,readme,logo};
+g.VoucherPDF={voucher,validateCompanyNames,previewFor,pageSize,summary,booklet,build,readme,logo};
 })(globalThis);
