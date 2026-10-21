@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react
 import { ConfirmDialog, type DialogState } from "./components";
 import { createNormalDemoModel, STORAGE_KEY } from "./data/defaults";
 import { calculateModel } from "./logic/calculation";
-import { migrateModel } from "./logic/migration";
+import { initializeFromRecovery, loadInitialState, type InitialLoadState } from "./logic/initial-load";
 import type { AuditEntry, SakeCostModel, ScreenId } from "./types";
 import type { CommonScreenProps, ToastKind } from "./ui-types";
 import { HomeScreen } from "./screens/HomeScreen";
@@ -13,6 +13,7 @@ import { SpecialScreen } from "./screens/SpecialScreen";
 import { InventoryScreen } from "./screens/InventoryScreen";
 import { MasterScreen } from "./screens/MasterScreen";
 import { DataScreen } from "./screens/DataScreen";
+import { RecoveryScreen } from "./screens/RecoveryScreen";
 import "./styles.css";
 
 const navigation: Array<{ id: ScreenId; label: string; icon: string }> = [
@@ -27,15 +28,6 @@ const navigation: Array<{ id: ScreenId; label: string; icon: string }> = [
   { id: "data", label: "保存・出力", icon: "▣" },
 ];
 
-function initialModel(): SakeCostModel {
-  try {
-    const stored = window.localStorage.getItem(STORAGE_KEY);
-    return stored ? migrateModel(JSON.parse(stored)) : createNormalDemoModel();
-  } catch {
-    return createNormalDemoModel();
-  }
-}
-
 function displayValue(value: unknown): string {
   if (value === null || value === undefined || value === "") return "空欄";
   if (typeof value === "number") return value.toLocaleString("ja-JP");
@@ -44,8 +36,12 @@ function displayValue(value: unknown): string {
   return JSON.stringify(value);
 }
 
-export default function App() {
-  const [model, setModel] = useState<SakeCostModel>(initialModel);
+function MainApp({ startingModel, initialPersistenceMode }: {
+  startingModel: SakeCostModel;
+  initialPersistenceMode: "persistent" | "session";
+}) {
+  const [model, setModel] = useState<SakeCostModel>(startingModel);
+  const [persistenceMode, setPersistenceMode] = useState(initialPersistenceMode);
   const [screenId, setScreenId] = useState<ScreenId>("home");
   const [dialog, setDialog] = useState<DialogState | null>(null);
   const [toast, setToast] = useState<{ message: string; kind: ToastKind } | null>(null);
@@ -53,12 +49,17 @@ export default function App() {
   const locked = model.meta.status === "finalized";
 
   useEffect(() => {
+    if (persistenceMode === "session") return;
     try {
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(model));
     } catch {
-      window.setTimeout(() => setToast({ message: "このブラウザへの自動保存に失敗しました。JSONバックアップを保存してください。", kind: "error" }), 0);
+      const timer = window.setTimeout(() => {
+        setPersistenceMode("session");
+        setToast({ message: "このブラウザへの自動保存に失敗しました。JSONバックアップを保存してください。", kind: "error" });
+      }, 0);
+      return () => window.clearTimeout(timer);
     }
-  }, [model]);
+  }, [model, persistenceMode]);
 
   useEffect(() => {
     if (!toast) return;
@@ -121,6 +122,7 @@ export default function App() {
     model,
     calc,
     locked,
+    persistenceMode,
     navigate,
     updateModel,
     recordAudit,
@@ -155,6 +157,7 @@ export default function App() {
         </header>
         <main>
           <div className="demo-warning" role="note"><strong>社内検討用デモ（架空データ）</strong><span>公開URLのため、実際の顧客データは入力しないでください。</span></div>
+          {persistenceMode === "session" && <div className="session-warning" role="alert"><strong>このセッションは自動保存されません</strong><span>ブラウザの保存領域を利用できないため、作業終了前にJSONバックアップを保存してください。</span></div>}
           {screens[screenId]}
         </main>
       </div>
@@ -162,4 +165,33 @@ export default function App() {
       <ConfirmDialog dialog={dialog} onClose={() => setDialog(null)} />
     </div>
   );
+}
+
+function readBrowserInitialState(): InitialLoadState {
+  return loadInitialState({ getItem: (key) => window.localStorage.getItem(key) });
+}
+
+export default function App() {
+  const [loadState, setLoadState] = useState<InitialLoadState>(readBrowserInitialState);
+  const [sessionModel] = useState(() => createNormalDemoModel());
+
+  const initializeRecovery = useCallback((allowWithoutBackup: boolean) => {
+    if (loadState.status !== "recovery-required") return;
+    const result = initializeFromRecovery(
+      loadState,
+      { setItem: (key, value) => window.localStorage.setItem(key, value) },
+      allowWithoutBackup,
+    );
+    setLoadState(result);
+  }, [loadState]);
+
+  if (loadState.status === "recovery-required") {
+    return <RecoveryScreen state={loadState} onInitialize={initializeRecovery} />;
+  }
+
+  if (loadState.status === "storage-unavailable") {
+    return <MainApp startingModel={sessionModel} initialPersistenceMode="session" />;
+  }
+
+  return <MainApp startingModel={loadState.model} initialPersistenceMode="persistent" />;
 }
