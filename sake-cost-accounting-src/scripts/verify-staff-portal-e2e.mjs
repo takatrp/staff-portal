@@ -2,6 +2,7 @@ import { verifyHandwriting, inspect, storedZip } from "../../demo-voucher/tests/
 import { verifyVoucherDefaults } from "../../demo-voucher/tests/defaults.e2e.mjs";
 import { verifyImageProfile } from "../../demo-voucher/tests/image-profile.e2e.mjs";
 import { verifyRandomPreview } from "../../demo-voucher/tests/random-preview.e2e.mjs";
+import { verifySeedVariation } from "../../demo-voucher/tests/seed-variation.e2e.mjs";
 import { verifyVoucherAnalytics } from "../../demo-voucher/tests/analytics.e2e.mjs";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
@@ -142,6 +143,7 @@ try {
   await voucherContext.close();
 
   console.log("VOUCHER_DEFAULTS_OK", JSON.stringify(await verifyVoucherDefaults(browser, new URL("./demo-voucher/", portalUrl).href)));
+  console.log("VOUCHER_SEED_VARIATION_OK", JSON.stringify(await verifySeedVariation(browser, new URL("./demo-voucher/", portalUrl).href)));
   console.log("VOUCHER_ANALYTICS_OK", JSON.stringify(await verifyVoucherAnalytics(browser)));
 
   assert.deepEqual(runtimeErrors, []);

@@ -1,6 +1,6 @@
 /* Demo Voucher Studio - deterministic model, integer tax math, UTF-8 CSV/ZIP. */
 (function(g){'use strict';
-const VERSION='1.4.0',DUMMY='T0000000000000';
+const VERSION='1.5.0',DUMMY='T0000000000000';
 const templates=['クラシック罫線','左サイドバー','ネイビーヘッダー','明細優先','二段組み','中央見出し','グリーン帯','モノクロ帳票','カード型合計','余白のある便箋'];
 const receiptTemplates=['サーマル標準','センターロゴ','太罫線','店舗カード','二重罫線','クーポン風','カフェ伝票','角丸見出し','モノクロ明細','ロングレシート'];
 const brands=[
@@ -20,7 +20,7 @@ function defaultDateRange(now=new Date()){
  const format=d=>[d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');
  return{startDate:format(start),endDate:format(now)};
 }
-function config(input={}){const c=Object.assign({invoiceCount:10,receiptCount:10,...defaultDateRange(),taxMix:'varied',pricing:'varied',rounding:'floor',receiptStyle:'normal',handwriting:'auto',pdfMode:'image',issuerName:'',recipientName:'',seed:'matsumoto-demo-01'},input);
+function config(input={}){const c=Object.assign({invoiceCount:10,receiptCount:10,...defaultDateRange(),taxMix:'varied',pricing:'varied',rounding:'floor',receiptStyle:'normal',handwriting:'auto',pdfMode:'image',issuerName:'',recipientName:'',seed:'matsumoto-demo-01',catalogVersion:VERSION},input);
 for(const k of ['invoiceCount','receiptCount']){c[k]=Number(c[k]);if(!Number.isInteger(c[k])||c[k]<0||c[k]>50)throw Error('各件数は0〜50件で指定してください。');}if(c.invoiceCount+c.receiptCount===0)throw Error('1件以上指定してください。');
 if(day(c.endDate)<day(c.startDate))throw Error('終了日は開始日以降を指定してください。');
 if(!['varied','10','8','mixed'].includes(c.taxMix))throw Error('税率構成が正しくありません。');
@@ -33,6 +33,7 @@ for(const key of ['issuerName','recipientName']){
  if(c[key].length>120||/[\u0000-\u001f\u007f-\u009f\u200e\u200f\u2028-\u202e\u2066-\u2069\uD800-\uDFFF]/u.test(c[key]))throw Error('社名は改行・制御文字を含めず120文字以内で指定してください。');
 }
 c.seed=String(c.seed).trim();if(!c.seed||c.seed.length>80)throw Error('seedは1〜80文字で指定してください。');
+if(!['1.4.0',VERSION].includes(c.catalogVersion))throw Error('生成方式のバージョンが正しくありません。');
 if(c.variations!==undefined){
  if(!Array.isArray(c.variations)||c.variations.length>100)throw Error('ランダム変更の条件が正しくありません。');
  const ids=new Set();c.variations=c.variations.map(v=>{
@@ -44,18 +45,31 @@ if(c.variations!==undefined){
 }return c;}
 function importConfig(input){
  if(!input||typeof input!=='object'||Array.isArray(input))throw Error('生成条件JSONはオブジェクトで指定してください。');
- if(input.version!==undefined&&![VERSION,'1.3.0'].includes(input.version))throw Error('バージョンが異なるため、同一結果は保証できません。対応する版を使用してください。');
- const {version,...values}=input;return config(values);
+ if(input.version!==undefined&&![VERSION,'1.4.0','1.3.0'].includes(input.version))throw Error('バージョンが異なるため、同一結果は保証できません。対応する版を使用してください。');
+ const {version,...values}=input;return config({...values,catalogVersion:values.catalogVersion??(version&&version!==VERSION?'1.4.0':VERSION)});
 }
 function divide(n,d,method){if(!Number.isSafeInteger(n)||n<0||!Number.isSafeInteger(d)||d<=0)throw Error('金額が範囲外です。');const q=Math.floor(n/d),r=n%d;return q+(method==='ceil'?Number(r>0):method==='round'?Number(r*2>=d):0);}
 function totals(items,pricing,rounding){const groups=[8,10].map(rate=>{const amount=items.filter(x=>x.rate===rate).reduce((s,x)=>s+x.quantity*x.unitPrice,0);const tax=divide(amount*rate,pricing==='inclusive'?100+rate:100,rounding);const net=pricing==='inclusive'?amount-tax:amount;return{rate,amount,net,tax,gross:net+tax};});return{groups,net:groups.reduce((s,x)=>s+x.net,0),tax:groups.reduce((s,x)=>s+x.tax,0),gross:groups.reduce((s,x)=>s+x.gross,0)};}
 function plusDays(d,n){return new Date(day(d)+n*86400000).toISOString().slice(0,10);}
 const receiptPools=[[[["国産米 5kg（持帰り）",8,2680,"food"],["緑茶 500ml",8,146,"food"],["お弁当（持帰り）",8,680,"food"]],[["日用品セット",10,498,"household"],["ビール 350ml",10,247,"alcohol"],["レジ袋",10,5,"household"]]],[[["休憩用焼き菓子（持帰り）",8,240,"food"],["飲料水",8,128,"food"]],[["事務用ノート",10,283,"stationery"],["コピー用紙 A4",10,580,"stationery"],["ボールペン",10,148,"stationery"]]],[[["食パン（持帰り）",8,318,"food"],["クロワッサン（持帰り）",8,240,"food"],["焼き菓子（持帰り）",8,190,"food"]],[["パンランチ（店内飲食）",10,980,"dine-in"],["カフェラテ（店内飲食）",10,460,"dine-in"],["コーヒー（店内飲食）",10,400,"dine-in"]]],[[["日替わり弁当（持帰り）",8,780,"food"],["惣菜セット（持帰り）",8,480,"food"]],[["ランチセット（店内飲食）",10,1480,"dine-in"],["ビール 350ml",10,247,"alcohol"],["配送料",10,500,"shipping"]]],[[["ミネラルウォーター",8,128,"food"],["サンドイッチ（持帰り）",8,380,"food"],["焼き菓子（持帰り）",8,190,"food"]],[["食器用洗剤",10,398,"household"],["缶ビール",10,247,"alcohol"],["乾電池",10,480,"household"]]],[[["野菜詰合せ（持帰り）",8,970,"food"],["りんご（持帰り）",8,180,"food"],["国産米 5kg（持帰り）",8,2680,"food"]],[["配送料",10,687,"shipping"],["園芸用培養土",10,580,"household"],["保存用ボックス",10,480,"household"]]],[[["コーヒー豆 200g（持帰り）",8,864,"food"],["スコーン（持帰り）",8,280,"food"],["食パン（持帰り）",8,318,"food"]],[["コーヒー（店内飲食）",10,450,"dine-in"],["カフェラテ（店内飲食）",10,520,"dine-in"],["ケーキ（店内飲食）",10,580,"dine-in"]]],[[["ギフト菓子（持帰り）",8,740,"food"],["紅茶（持帰り）",8,360,"food"]],[["ギフト包装用品",10,380,"household"],["便せんセット",10,480,"stationery"],["配送料",10,687,"shipping"]]],[[["おつまみナッツ（持帰り）",8,360,"food"],["チーズ（持帰り）",8,580,"food"]],[["ビール 350ml",10,247,"alcohol"],["日本酒 720ml",10,1480,"alcohol"],["ワイン 750ml",10,1980,"alcohol"]]],[[["日替わり弁当（持帰り）",8,680,"food"],["惣菜セット（持帰り）",8,480,"food"],["緑茶 500ml",8,146,"food"]],[["デリプレート（店内飲食）",10,1180,"dine-in"],["配送料",10,500,"shipping"],["ビール",10,480,"alcohol"]]]];
+const receiptExtras=[
+ [[['季節の果物（持帰り）',8,540,'food'],['ヨーグルト（持帰り）',8,210,'food']],[['キッチンペーパー',10,320,'household'],['保存袋',10,260,'household']]],
+ [[['クッキー（持帰り）',8,290,'food'],['ドリップコーヒー（持帰り）',8,420,'food']],[['付箋セット',10,340,'stationery'],['クリアファイル',10,180,'stationery']]],
+ [[['バゲット（持帰り）',8,360,'food'],['マフィン（持帰り）',8,280,'food']],[['スープ（店内飲食）',10,520,'dine-in'],['紅茶（店内飲食）',10,380,'dine-in']]],
+ [[['おにぎり（持帰り）',8,240,'food'],['サラダ（持帰り）',8,420,'food']],[['定食（店内飲食）',10,1280,'dine-in'],['ソフトドリンク（店内飲食）',10,320,'dine-in']]],
+ [[['果汁飲料',8,180,'food'],['おにぎり（持帰り）',8,190,'food']],[['ハンドソープ',10,430,'household'],['文房具セット',10,620,'stationery']]],
+ [[['トマト（持帰り）',8,390,'food'],['みかん（持帰り）',8,460,'food']],[['園芸用手袋',10,420,'household'],['買物袋',10,140,'household']]],
+ [[['クッキー（持帰り）',8,320,'food'],['紅茶葉（持帰り）',8,760,'food']],[['サンドイッチ（店内飲食）',10,680,'dine-in'],['プリン（店内飲食）',10,480,'dine-in']]],
+ [[['チョコレート（持帰り）',8,560,'food'],['ジャム（持帰り）',8,780,'food']],[['ギフト箱',10,520,'household'],['メッセージカード',10,210,'stationery']]],
+ [[['クラッカー（持帰り）',8,280,'food'],['ドライフルーツ（持帰り）',8,480,'food']],[['缶チューハイ',10,220,'alcohol'],['焼酎 720ml',10,1280,'alcohol']]],
+ [[['サンドイッチ（持帰り）',8,430,'food'],['カップスープ（持帰り）',8,310,'food']],[['スープ（店内飲食）',10,540,'dine-in'],['コーヒー（店内飲食）',10,420,'dine-in']]]
+];
 function shuffledTen(r){const values=Array.from({length:10},(_,i)=>i);for(let i=values.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[values[i],values[j]]=[values[j],values[i]];}return values;}
-function generate(input){const c=config(input),r=random(c.seed),pick=a=>a[Math.floor(r()*a.length)],docs=[];const appearance=random(c.seed+'|appearance-v1.1');const merchants={invoice:shuffledTen(appearance),receipt:shuffledTen(appearance)},layouts={invoice:shuffledTen(appearance),receipt:shuffledTen(appearance)};const papers=shuffledTen(random(c.seed+'|paper-v1.2')).filter(v=>v<3);const span=(day(c.endDate)-day(c.startDate))/86400000;
+function variedPrice(base,r){const step=base>=1000?10:base>=300?5:1;return Math.max(1,Math.round(base*(.85+r()*.30)/step)*step);}
+function generate(input){const c=config(input),r=random(c.seed),pick=a=>a[Math.floor(r()*a.length)],docs=[],legacy=c.catalogVersion==='1.4.0';const appearance=random(c.seed+'|appearance-v1.1');const merchants={invoice:shuffledTen(appearance),receipt:shuffledTen(appearance)},layouts={invoice:shuffledTen(appearance),receipt:shuffledTen(appearance)};const papers=shuffledTen(random(c.seed+'|paper-v1.2')).filter(v=>v<3);const span=(day(c.endDate)-day(c.startDate))/86400000;
 for(const type of ['invoice','receipt'])for(let i=0;i<c[type==='invoice'?'invoiceCount':'receiptCount'];i++){const ix=docs.length,brandIndex=(type==='invoice'?0:10)+merchants[type][i%10],templateIndex=layouts[type][i%10],handwritten=type==='receipt'&&c.receiptStyle==='handwritten',paper=handwritten?papers[i%3]:templateIndex,hand=handwritten?(c.handwriting==='auto'?['neat','natural','uneven'][i%3]:c.handwriting):'none';const [name,latin,color]=brands[brandIndex],taxMode=c.taxMix==='varied'?['10','8','mixed'][ix%3]:c.taxMix,pricing=c.pricing==='varied'?(ix%2?'inclusive':'exclusive'):c.pricing;
-const count=type==='invoice'?4+Math.floor(r()*4):3+Math.floor(r()*6);const items=[];
-for(let j=0;j<count;j++){const rate=taxMode==='mixed'?(j%2?10:8):Number(taxMode),pool=type==='receipt'?receiptPools[brandIndex-10][rate===8?0:1]:(rate===8?goods8:goods10);const item=pick(pool);const quantity=1+Math.floor(r()*(type==='invoice'?8:3));const unitPrice=item[2]+Math.floor(r()*23);items.push({name:item[0],rate,unitPrice,quantity,category:item[3],amount:unitPrice*quantity});}
+const count=type==='invoice'?4+Math.floor(r()*4):3+Math.floor(r()*6);const items=[],usedNames=new Set();
+for(let j=0;j<count;j++){const rate=taxMode==='mixed'?(j%2?10:8):Number(taxMode),pool=type==='receipt'&&!legacy?[...receiptPools[brandIndex-10][rate===8?0:1],...receiptExtras[brandIndex-10][rate===8?0:1]]:type==='receipt'?receiptPools[brandIndex-10][rate===8?0:1]:(rate===8?goods8:goods10);const unused=legacy?pool:pool.filter(item=>!usedNames.has(item[0])),item=pick(unused.length?unused:pool);usedNames.add(item[0]);const quantity=1+Math.floor(r()*(type==='invoice'?8:3));const unitPrice=legacy?item[2]+Math.floor(r()*23):variedPrice(item[2],r);items.push({name:item[0],rate,unitPrice,quantity,category:item[3],amount:unitPrice*quantity});}
 const date=plusDays(c.startDate,Math.floor(r()*(span+1))),id=(type==='invoice'?'INV':'REC')+'-'+String(i+1).padStart(3,'0'),t=totals(items,pricing,c.rounding);const merchant={name,latin,color:'#'+color,logo:brandIndex,registration:DUMMY,address:'架空県サンプル市デモ町 '+(brandIndex+1)+'-2-3'};
 const doc={id,type,date,dueDate:plusDays(date,30),time:String(9+Math.floor(r()*10)).padStart(2,'0')+':'+String(Math.floor(r()*60)).padStart(2,'0'),merchant,buyer:'株式会社サンプル研修 御中',template:paper,templateName:handwritten?['領収書用紙・若草','領収書用紙・藍','領収書用紙・朱'][paper]+' / '+{neat:'整った筆跡',natural:'やわらかな筆跡',uneven:'少しラフな筆跡',scrawl:'崩した筆跡'}[hand]:(type==='invoice'?templates:receiptTemplates)[templateIndex],receiptStyle:handwritten?'handwritten':'normal',handwriting:hand,pdfMode:c.pdfMode,pricing,rounding:c.rounding,taxMode,items,totals:t,payment:type==='invoice'?'銀行振込（デモ）':ix%3?'クレジット（デモ）':'現金（デモ）',seed:c.seed};doc.tender=doc.payment.startsWith('現金')?Math.ceil(t.gross/1000)*1000:t.gross;doc.change=doc.tender-t.gross;doc.filename=id+'_'+date+'_'+(type==='invoice'?'請求書':handwritten?'領収書':'レシート')+(c.pdfMode==='image'?'_画像':'')+'.pdf';assertDoc(doc);docs.push(doc);}
 for(const d of docs){const v=c.variations?.find(v=>v.id===d.id);if(v)applyVariation(d,v);

@@ -3,12 +3,13 @@
 const C=VoucherCore,P=VoucherPDF,$=id=>document.getElementById(id);
 const fields=['invoiceCount','receiptCount','startDate','endDate','taxMix','pricing','rounding','receiptStyle','handwriting','pdfMode','issuerName','recipientName','seed'];
 const presets={handwritten:{invoiceCount:0,receiptCount:3,taxMix:'mixed',pricing:'inclusive',receiptStyle:'handwritten',handwriting:'auto',pdfMode:'image'},standard:{invoiceCount:10,receiptCount:10,taxMix:'varied',pricing:'varied',receiptStyle:'normal',pdfMode:'image'},mixed:{invoiceCount:5,receiptCount:5,taxMix:'mixed',pricing:'varied',receiptStyle:'normal',pdfMode:'image'},receipts:{invoiceCount:0,receiptCount:10,taxMix:'varied',pricing:'inclusive',receiptStyle:'normal',pdfMode:'image'}};
-let batch=null,selected=null,busy=false,previewUrl=null,previewTicket=0,generationTicket=0,randomNonce=0,variations=[];
+let batch=null,selected=null,busy=false,previewUrl=null,previewTicket=0,generationTicket=0,randomNonce=0,variations=[],seedIsExplicit=false,catalogVersion=C.VERSION;
 const printSelection=new Set();
 const pdfCache=new Map();
-function read(){return {...Object.fromEntries(fields.map(k=>[k,$(k).value])),...(variations.length?{variations}: {})};}
+function read(){return {...Object.fromEntries(fields.map(k=>[k,$(k).value])),catalogVersion,...(variations.length?{variations}: {})};}
 function appearance(){$('handwritingField').hidden=$('receiptStyle').value!=='handwritten';}
-function set(c){fields.forEach(k=>{if(c[k]!==undefined)$(k).value=c[k];});variations=c.variations||[];appearance();}
+function set(c){fields.forEach(k=>{if(c[k]!==undefined)$(k).value=c[k];});if(c.seed!==undefined)seedIsExplicit=true;if(c.catalogVersion!==undefined)catalogVersion=c.catalogVersion;variations=c.variations||[];appearance();}
+function freshSeed(){const values=new Uint32Array(4);crypto.getRandomValues(values);return 'demo-'+Array.from(values,n=>n.toString(36).padStart(7,'0')).join('-');}
 function error(e){$('error').hidden=false;$('error').textContent=e.message||String(e);console.error(e);}
 function state(value,message=''){
  busy=value;$('status').textContent=message;
@@ -86,7 +87,9 @@ async function generate(randomize=false){
  ++previewTicket;$('error').hidden=true;
  state(true,randomize?'選択した社名・金額を変更しています…':'証憑を生成しています…');
  try{
-  const config=C.config(read());
+  const values=read();
+  if(!randomize&&!seedIsExplicit){values.seed=freshSeed();delete values.variations;}
+  const config=C.config(values);
   await P.validateCompanyNames(config);
   const result=randomize?randomBatch(previous):{next:C.generate(config)};
   if(ticket!==generationTicket)return;
@@ -162,6 +165,7 @@ $('importConfig').addEventListener('change',async e=>{
  }catch(e){error(e);}finally{e.target.value='';}
 });
 $('receiptStyle').addEventListener('change',appearance);
+$('seed').addEventListener('input',()=>{seedIsExplicit=true;});
 $('settingsForm').addEventListener('input',()=>{variations=[];if(batch&&!busy)$('status').textContent='条件を変更しました。「この条件で生成」で反映します。';});
 const initialDates=C.defaultDateRange();
 for(const key of ['startDate','endDate'])if(!$(key).value)$(key).value=initialDates[key];
