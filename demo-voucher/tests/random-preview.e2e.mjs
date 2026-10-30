@@ -27,6 +27,7 @@ export async function verifyRandomPreview(page){
  await page.locator("#invoiceCount").fill("2");await page.locator("#receiptCount").fill("3");
  await page.locator("#startDate").fill("2026-10-01");await page.locator("#endDate").fill("2026-10-01");
  await page.locator("#taxMix").selectOption("8");await page.locator("#pricing").selectOption("inclusive");await page.locator("#rounding").selectOption("ceil");
+ await page.locator('details summary').click();await page.locator('#seed').fill('random-preview-fixed-seed');
  await page.getByRole("button",{name:"この条件で生成",exact:true}).click();
  await page.waitForFunction(()=>!document.getElementById("regenerate").disabled);
  await page.locator("#filter").selectOption("receipt");

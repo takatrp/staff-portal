@@ -24,6 +24,7 @@ export async function verifyVoucherAnalytics(browser) {
   try {
     await page.goto(canonical + '?seed=PRIVATE_QUERY#PRIVATE_HASH', { waitUntil: 'domcontentloaded' });
     await page.waitForFunction(() => !document.getElementById('downloadZip').disabled);
+    await page.waitForFunction(() => [...document.querySelectorAll('iframe')].some(item => item.contentWindow?.location.pathname === '/staff-portal/demo-voucher/analytics-frame.html'));
     const frame = page.frames().find(item => item.url() === canonical + 'analytics-frame.html');
     assert.ok(frame, 'Analytics uses a separate empty document');
     await frame.waitForFunction(() => !!window.google_tag_manager, undefined, { timeout: 30_000 });
