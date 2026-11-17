@@ -57,8 +57,8 @@ try {
   );
   await page.reload({ waitUntil: "domcontentloaded" });
   assert.equal(await page.locator("#portal-content").isVisible(), true);
-  assert.equal(await page.locator(".tool-item:visible").count(), 15);
-  assert.equal(await page.locator("#visible-count").innerText(), "15");
+  assert.equal(await page.locator(".tool-item:visible").count(), 16);
+  assert.equal(await page.locator("#visible-count").innerText(), "16");
   assert.equal(await page.locator("script[src*='googletagmanager.com']").count(), 1);
 
   const journalCard = page.locator('.tool-item[href="https://script.google.com/macros/s/AKfycbydJOF19Yr7rajctRI5pL0gIYzDoyk6HNbweEssnN4arlJdG4M64nD0iQ0EI9BZXyCZ/exec"]');
@@ -71,8 +71,19 @@ try {
   assert.equal(await archiveCard.getAttribute("data-category"), "other");
   assert.match(await archiveCard.innerText(), /月次決算体制の構築支援 実践勉強会アーカイブ/);
   await page.locator("#category-filter").selectOption("other");
-  assert.equal(await page.locator(".tool-item:visible").count(), 4);
-  assert.equal(await page.locator("#visible-count").innerText(), "4");
+  assert.equal(await page.locator(".tool-item:visible").count(), 5);
+  assert.equal(await page.locator("#visible-count").innerText(), "5");
+  await page.getByRole("button", { name: "リセット" }).click();
+
+  const extensionCard = page.locator('.tool-item[href="https://tkc-extension-library-matsumoto.takatrp0222.chatgpt.site/"]');
+  assert.equal(await extensionCard.count(), 1);
+  assert.equal(await extensionCard.getAttribute("data-category"), "other");
+  assert.equal(await extensionCard.getAttribute("data-role"), "staff");
+  assert.equal(await extensionCard.getAttribute("target"), "_blank");
+  assert.equal(await extensionCard.getAttribute("rel"), "noopener");
+  await page.getByPlaceholder("ツール名・業務内容で検索").fill("拡張機能");
+  assert.equal(await page.locator(".tool-item:visible").count(), 1);
+  assert.equal(await extensionCard.isVisible(), true);
   await page.getByRole("button", { name: "リセット" }).click();
 
   const voucherCard = page.locator('.tool-item[href="./demo-voucher/"]');
@@ -93,7 +104,7 @@ try {
   assert.equal(await invoiceCard.getAttribute("data-category"), "advice");
   assert.equal(await page.locator("#visible-count").innerText(), "1");
   await page.getByRole("button", { name: "リセット" }).click();
-  assert.equal(await page.locator(".tool-item:visible").count(), 15);
+  assert.equal(await page.locator(".tool-item:visible").count(), 16);
 
   await Promise.all([
     page.waitForNavigation({ waitUntil: "domcontentloaded" }),
