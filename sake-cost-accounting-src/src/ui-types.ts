@@ -7,6 +7,7 @@ export type CommonScreenProps = {
   model: SakeCostModel;
   calc: CalculationResult;
   locked: boolean;
+  persistenceMode: "persistent" | "session";
   navigate: (screenId: ScreenId) => void;
   updateModel: (mutator: (draft: SakeCostModel) => void, action?: string, target?: string, detail?: string, options?: { allowWhenLocked?: boolean }) => void;
   recordAudit: (target: string, before: unknown, after: unknown, action?: string) => void;

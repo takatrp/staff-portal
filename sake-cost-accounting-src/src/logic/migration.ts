@@ -53,6 +53,10 @@ function isNullableFiniteNumber(value: unknown): boolean {
   return value === null || (typeof value === "number" && Number.isFinite(value));
 }
 
+function isNullableNonNegativeNumber(value: unknown): boolean {
+  return value === null || (typeof value === "number" && Number.isFinite(value) && value >= 0);
+}
+
 function hasFields(record: unknown, fields: readonly string[], validator: (value: unknown) => boolean): record is UnknownRecord {
   return isRecord(record) && fields.every((field) => validator(record[field]));
 }
@@ -79,14 +83,15 @@ function validateCore(model: SakeCostModel): void {
     const category = model.categories[id];
     if (!isRecord(category) || typeof category.label !== "string" || typeof category.short !== "string" || typeof category.allocationEligible !== "boolean" || !["alcohol", "amazake"].includes(category.workflow)) invalidStructure(`酒種マスター:${id}`);
   }
-  if (!isRecord(model.allocationDrivers) || !isCategoryMap(model.allocationDrivers.manufacturing, isNullableFiniteNumber) || !isCategoryMap(model.allocationDrivers.packaging, isNullableFiniteNumber)) invalidStructure("配賦基準数量");
+  if (!isRecord(model.allocationDrivers) || !isCategoryMap(model.allocationDrivers.manufacturing, isNullableNonNegativeNumber) || !isCategoryMap(model.allocationDrivers.packaging, isNullableNonNegativeNumber)) invalidStructure("配賦基準数量は0以上で入力してください");
   if (!isRecord(model.materials)) invalidStructure("材料費");
   for (const group of ["manufacturing", "packaging"] as const) {
     if (!Array.isArray(model.materials[group])) invalidStructure(`${group}材料費`);
     for (const row of model.materials[group]) {
       if (!isRecord(row) || typeof row.id !== "string" || typeof row.label !== "string" || typeof row.standard !== "boolean" || !isRecord(row.entries)) invalidStructure(`${group}材料行`);
       for (const id of CATEGORY_IDS) {
-        if (!hasFields(row.entries[id], ["opening", "occurred", "closing", "transfer"], isNullableFiniteNumber)) invalidStructure(`${group}材料行:${id}`);
+        if (!hasFields(row.entries[id], ["opening", "occurred", "closing"], isNullableNonNegativeNumber)) invalidStructure(`${group}材料の期首・当期・期末は0以上で入力してください:${id}`);
+        if (!hasFields(row.entries[id], ["transfer"], isNullableFiniteNumber)) invalidStructure(`${group}材料の振替・調整:${id}`);
       }
     }
     assertUniqueIds(model.materials[group], `${group}材料行`);
@@ -95,33 +100,34 @@ function validateCore(model: SakeCostModel): void {
   for (const poolId of POOL_IDS) {
     if (!Array.isArray(model.pools[poolId])) invalidStructure(`配賦データ:${poolId}`);
     for (const row of model.pools[poolId]) {
-      if (!isRecord(row) || typeof row.id !== "string" || typeof row.label !== "string" || typeof row.standard !== "boolean" || !isNullableFiniteNumber(row.total) || !["manufacturing-volume", "packaging-volume", "custom", "manual"].includes(row.method)) invalidStructure(`配賦行:${poolId}`);
-      if (!isCategoryMap(row.direct, isNullableFiniteNumber) || !isCategoryMap(row.manual, isNullableFiniteNumber) || !isCategoryMap(row.customWeights, isNullableFiniteNumber)) invalidStructure(`配賦行入力:${poolId}`);
+      if (!isRecord(row) || typeof row.id !== "string" || typeof row.label !== "string" || typeof row.standard !== "boolean" || !isNullableNonNegativeNumber(row.total) || !["manufacturing-volume", "packaging-volume", "custom", "manual"].includes(row.method)) invalidStructure(`配賦行の費目総額は0以上で入力してください:${poolId}`);
+      if (!isCategoryMap(row.direct, isNullableNonNegativeNumber) || !isCategoryMap(row.manual, isNullableNonNegativeNumber) || !isCategoryMap(row.customWeights, isNullableNonNegativeNumber)) invalidStructure(`配賦行入力の直課額・個別入力額・任意比率は0以上で入力してください:${poolId}`);
     }
     assertUniqueIds(model.pools[poolId], `配賦行:${poolId}`);
   }
   assertUniqueIds(POOL_IDS.flatMap((poolId) => model.pools[poolId]), "配賦行全体");
   if (!isRecord(model.productRollforwards)) invalidStructure("製品原価");
-  const rawFields = ["openingQty", "openingAmount", "purchaseQty", "purchaseAmount", "closingQty", "closingAmount", "transferQty", "transferAmount", "lossQty", "lossAmount"] as const;
+  const rawNonNegativeFields = ["openingQty", "openingAmount", "purchaseQty", "purchaseAmount", "closingQty", "closingAmount", "lossQty", "lossAmount"] as const;
+  const rawTransferFields = ["transferQty", "transferAmount"] as const;
   const middleFields = ["openingQty", "openingAmount", "closingQty", "closingAmount"] as const;
   for (const id of ALCOHOL_CATEGORY_IDS) {
     const flow = model.productRollforwards[id];
-    if (!isRecord(flow) || !hasFields(flow.raw, rawFields, isNullableFiniteNumber) || !hasFields(flow.middle, middleFields, isNullableFiniteNumber) || !hasFields(flow.finished, [...middleFields, "valuationLossQty", "valuationLossAmount"], isNullableFiniteNumber)) invalidStructure(`製品原価:${id}`);
+    if (!isRecord(flow) || !hasFields(flow.raw, rawNonNegativeFields, isNullableNonNegativeNumber) || !hasFields(flow.raw, rawTransferFields, isNullableFiniteNumber) || !hasFields(flow.middle, middleFields, isNullableNonNegativeNumber) || !hasFields(flow.finished, [...middleFields, "valuationLossQty", "valuationLossAmount"], isNullableNonNegativeNumber)) invalidStructure(`製品原価の振替以外は0以上で入力してください:${id}`);
   }
   if (!Array.isArray(model.byproducts)) invalidStructure("副産物");
   for (const row of model.byproducts) {
     if (!isRecord(row) || typeof row.id !== "string" || typeof row.label !== "string" || typeof row.standard !== "boolean" || !["sake", "shochu", "liqueur", "spirits", "contract", "whisky"].includes(row.creditCategory) || typeof row.includeInFinancialTotals !== "boolean") invalidStructure("副産物行");
-    if (!hasFields(row, ["producedQty", "valuationUnit", "openingAmount", "purchaseAmount", "internalIssueAmount", "closingQty", "closingUnit"], isNullableFiniteNumber)) invalidStructure("副産物金額");
+    if (!hasFields(row, ["producedQty", "valuationUnit", "openingAmount", "purchaseAmount", "internalIssueAmount", "closingQty", "closingUnit"], isNullableNonNegativeNumber)) invalidStructure("副産物の数量・金額・単価は0以上で入力してください");
   }
   assertUniqueIds(model.byproducts, "副産物行");
-  if (!hasFields(model.amazake, ["openingQty", "openingAmount", "productionQty", "closingQty", "closingAmount"], isNullableFiniteNumber)) invalidStructure("甘酒原価");
-  if (!isRecord(model.food) || !hasFields(model.food, ["materialOpening", "materialPurchases", "materialClosing", "wages", "welfare", "outsourcing"], isNullableFiniteNumber) || !Array.isArray(model.food.products)) invalidStructure("食品原価");
+  if (!hasFields(model.amazake, ["openingQty", "openingAmount", "productionQty", "closingQty", "closingAmount"], isNullableNonNegativeNumber)) invalidStructure("甘酒の数量・金額は0以上で入力してください");
+  if (!isRecord(model.food) || !hasFields(model.food, ["materialOpening", "materialPurchases", "materialClosing", "wages", "welfare", "outsourcing"], isNullableNonNegativeNumber) || !Array.isArray(model.food.products)) invalidStructure("食品原価は0以上で入力してください");
   for (const row of model.food.products) {
-    if (!isRecord(row) || typeof row.id !== "string" || typeof row.label !== "string" || typeof row.standard !== "boolean" || !hasFields(row, ["openingAmount", "producedAmount", "closingAmount"], isNullableFiniteNumber)) invalidStructure("食品製品行");
+    if (!isRecord(row) || typeof row.id !== "string" || typeof row.label !== "string" || typeof row.standard !== "boolean" || !hasFields(row, ["openingAmount", "producedAmount", "closingAmount"], isNullableNonNegativeNumber)) invalidStructure("食品製品の金額は0以上で入力してください");
   }
   assertUniqueIds(model.food.products, "食品製品行");
-  if (!hasFields(model.merchandise, ["openingInventory", "openingAdjustment", "purchases", "liquorTax", "taxFreeTransferOut", "purchaseDiscount", "otherTransfer", "closingInventory"], isNullableFiniteNumber)) invalidStructure("商品原価");
-  if (!isRecord(model.miscIncome) || !isCategoryMap(model.miscIncome.packaging, isNullableFiniteNumber)) invalidStructure("雑収入等");
+  if (!hasFields(model.merchandise, ["openingInventory", "purchases", "liquorTax", "taxFreeTransferOut", "purchaseDiscount", "otherTransfer", "closingInventory"], isNullableNonNegativeNumber) || !hasFields(model.merchandise, ["openingAdjustment"], isNullableFiniteNumber)) invalidStructure("商品の期首調整以外は0以上で入力してください");
+  if (!isRecord(model.miscIncome) || !isCategoryMap(model.miscIncome.packaging, isNullableNonNegativeNumber)) invalidStructure("製品費用から控除する雑収入等は0以上で入力してください");
   if (!isRecord(model.review) || !Array.isArray(model.review.items) || model.review.items.some((item) => !isRecord(item) || typeof item.id !== "string" || typeof item.title !== "string" || typeof item.detail !== "string" || typeof item.done !== "boolean" || typeof item.note !== "string")) invalidStructure("人による確認");
   assertUniqueIds(model.review.items, "人による確認");
   if (!isRecord(model.warningAcknowledgements) || Object.values(model.warningAcknowledgements).some((item) => !isRecord(item) || typeof item.confirmed !== "boolean" || typeof item.note !== "string" || (item.confirmedAt !== undefined && typeof item.confirmedAt !== "string"))) invalidStructure("警告確認");
